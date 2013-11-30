@@ -1,9 +1,9 @@
 package main
 
 import (
-	"init"
+	"fmt"
 )
 
 func main() {
-	init.Init()
+	fmt.Println("testing")
 }
