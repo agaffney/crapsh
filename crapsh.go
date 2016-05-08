@@ -1,14 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"github.com/agaffney/crapsh/prompt"
+	"github.com/agaffney/crapsh/cmd"
 )
 
 func main() {
-	fmt.Println("in main()")
-	p := &prompt.Prompt{
-		Text: "prompt text",
-	}
-	p.Show()
+	cmd.Start()
 }
