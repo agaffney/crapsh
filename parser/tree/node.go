@@ -5,6 +5,16 @@ type Node interface {
 	Set_content(string)
 }
 
+type FactoryFunc func(Node) Node
+
+type NodeType struct {
+	Name      string
+	Container bool
+	Factory   FactoryFunc
+}
+
+var Node_types []NodeType
+
 type BaseNode struct {
 	parent   *Node
 	children []Node
@@ -21,6 +31,10 @@ type GenericNode struct {
 	*BaseNode
 }
 
+func init() {
+	Node_types = make([]NodeType, 0)
+}
+
 func NewBaseNode(parent Node) *BaseNode {
 	return &BaseNode{parent: &parent}
 }
@@ -31,6 +45,10 @@ func NewTop() Node {
 
 func NewGeneric(parent Node) Node {
 	return &GenericNode{BaseNode: NewBaseNode(parent)}
+}
+
+func add_node_type(nt NodeType) {
+	Node_types = append(Node_types, nt)
 }
 
 func (n *BaseNode) Add_child(child Node) {
