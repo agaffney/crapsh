@@ -26,13 +26,13 @@ func (p *Parser) Parse(input string) tree.Node {
 	p.input = r
 	p.Line = 1
 	p.Offset = 0
-	topnode := &tree.TopNode{BaseNode: tree.NewNode(nil)}
+	topnode := tree.NewTop()
 	p.Scan(topnode)
 	return topnode
 }
 
 func (p *Parser) Scan(parent tree.Node) error {
-	sn := &tree.StatementNode{BaseNode: tree.NewNode(parent)}
+	sn := tree.NewStatement(parent)
 	var buf bytes.Buffer
 	for {
 		c, err := p.next_rune()
@@ -40,12 +40,14 @@ func (p *Parser) Scan(parent tree.Node) error {
 			if err != io.EOF {
 				fmt.Printf("Error: %v\n", err)
 			}
-			return err
+			break
 		}
 		fmt.Printf("Line %d, offset %d: '%c' (%d)\n", p.Line, p.Offset, c, c)
 		if unicode.IsSpace(c) || c == '\n' {
 			fmt.Printf("buf contains: '%s'\n", buf.String())
-			sn.Add_child(&tree.GenericNode{BaseNode: tree.NewNode(sn), Content: buf.String()})
+			child := tree.NewGeneric(sn)
+			child.Set_content(buf.String())
+			sn.Add_child(child)
 			buf.Reset()
 			if c == '\n' {
 				p.next_line()
@@ -54,7 +56,7 @@ func (p *Parser) Scan(parent tree.Node) error {
 			buf.WriteRune(c)
 		}
 	}
-	fmt.Printf("%v\n", sn)
+	fmt.Printf("%#v\n", parent)
 	return nil
 }
 
