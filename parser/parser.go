@@ -1,0 +1,76 @@
+package parser
+
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"github.com/agaffney/crapsh/parser/tree"
+	"io"
+	"strings"
+	"unicode"
+)
+
+type Parser struct {
+	input  *bufio.Reader
+	Line   int
+	Offset int
+}
+
+func NewParser() *Parser {
+	parser := &Parser{}
+	return parser
+}
+
+func (p *Parser) Parse(input string) tree.Node {
+	r := bufio.NewReader(strings.NewReader(input))
+	p.input = r
+	p.Line = 1
+	p.Offset = 0
+	topnode := &tree.TopNode{BaseNode: tree.NewNode(nil)}
+	p.Scan(topnode)
+	return topnode
+}
+
+func (p *Parser) Scan(parent tree.Node) error {
+	sn := &tree.StatementNode{BaseNode: tree.NewNode(parent)}
+	var buf bytes.Buffer
+	for {
+		c, err := p.next_rune()
+		if err != nil {
+			if err != io.EOF {
+				fmt.Printf("Error: %v\n", err)
+			}
+			return err
+		}
+		fmt.Printf("Line %d, offset %d: '%c' (%d)\n", p.Line, p.Offset, c, c)
+		if unicode.IsSpace(c) || c == '\n' {
+			fmt.Printf("buf contains: '%s'\n", buf.String())
+			sn.Add_child(&tree.GenericNode{BaseNode: tree.NewNode(sn), Content: buf.String()})
+			buf.Reset()
+			if c == '\n' {
+				p.next_line()
+			}
+		} else {
+			buf.WriteRune(c)
+		}
+	}
+	fmt.Printf("%v\n", sn)
+	return nil
+}
+
+func (p *Parser) next_rune() (rune, error) {
+	r, _, err := p.input.ReadRune()
+	p.Offset++
+	return r, err
+}
+
+func (p *Parser) unread_rune() error {
+	err := p.input.UnreadRune()
+	p.Offset--
+	return err
+}
+
+func (p *Parser) next_line() {
+	p.Line++
+	p.Offset = 0
+}

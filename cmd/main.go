@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/agaffney/crapsh/parser"
 	"github.com/agaffney/crapsh/prompt"
 )
 
@@ -13,5 +14,6 @@ func Start() {
 	p.Show()
 	c := &Config{}
 	parse_cmdline_opts(c)
-	fmt.Printf("Command is '%s'\n", c.Command)
+	parser := parser.NewParser()
+	parser.Parse(c.Command)
 }
