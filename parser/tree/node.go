@@ -10,6 +10,8 @@ type FactoryFunc func(Node) Node
 type NodeType struct {
 	Name      string
 	Container bool
+	Token     string
+	TokenEnd  string
 	Factory   FactoryFunc
 }
 
