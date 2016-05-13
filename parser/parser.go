@@ -43,24 +43,29 @@ func (p *Parser) Scan(parent tree.Node) error {
 			if err != io.EOF {
 				fmt.Printf("Error: %v\n", err)
 			}
+			p.process_scan_buf(&buf, sn)
 			break
 		}
-		fmt.Printf("Line %d, offset %d, overall offset %d: '%c' (%d)\n", p.Line, p.LineOffset, p.Offset, c, c)
+		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
 		if unicode.IsSpace(c) || c == '\n' {
-			fmt.Printf("buf contains: '%s'\n", buf.String())
-			child := tree.NewGeneric(sn)
-			child.Set_content(buf.String())
-			sn.Add_child(child)
-			buf.Reset()
-			if c == '\n' {
-				p.next_line()
-			}
+			p.process_scan_buf(&buf, sn)
+		} else if c == '\n' {
+			p.process_scan_buf(&buf, sn)
+			p.next_line()
 		} else {
 			buf.WriteRune(c)
 		}
 	}
 	fmt.Printf("%#v\n", parent)
 	return nil
+}
+
+func (p *Parser) process_scan_buf(buf *bytes.Buffer, parent tree.Node) {
+	fmt.Printf("buf contains: '%s'\n", buf.String())
+	child := tree.NewGeneric(parent)
+	child.Set_content(buf.String())
+	parent.Add_child(child)
+	buf.Reset()
 }
 
 func (p *Parser) next_rune() (rune, error) {
