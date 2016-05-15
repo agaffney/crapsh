@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/agaffney/crapsh/parser/tree"
 	"io"
 	"strings"
 	"unicode"
@@ -22,20 +21,77 @@ func NewParser() *Parser {
 	return parser
 }
 
-func (p *Parser) Parse(input string) tree.Node {
-	fmt.Printf("%#v\n", tree.Node_types)
+func (p *Parser) Parse(input string) {
 	r := bufio.NewReader(strings.NewReader(input))
 	p.input = r
 	p.Line = 1
 	p.LineOffset = 0
 	p.Offset = 0
-	topnode := tree.NewTop()
-	p.Scan(topnode)
-	return topnode
+	for {
+		line, err := p.Get_next_line()
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			break
+		}
+		// EOF
+		if line.Len() == 0 {
+			break
+		}
+		fmt.Printf("Line: %s\n", line)
+	}
 }
 
-func (p *Parser) Scan(parent tree.Node) error {
-	sn := tree.NewStatement(parent)
+func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	var escape = false
+	var stackdepth int = 0
+	stack := []*Container{line_container}
+	for {
+		c, err := p.next_rune()
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+			break
+		}
+		//fmt.Printf("Stack item (%d): %#v\n", stackdepth+1, stack[stackdepth])
+		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
+		if c == '\\' {
+			escape = true
+			// Explicitly skip to the next iteration so we don't hit
+			// the code below to turn off the 'escape' flag
+			continue
+		} else {
+			if escape == false && fmt.Sprintf("%c", c) == stack[stackdepth].TokenEnd {
+				stack = stack[:len(stack)-1]
+				stackdepth--
+			} else if stack[stackdepth].AllowedContainers != nil {
+				for _, cont := range containers {
+					if stack[stackdepth].Allowed_container(cont.Name) {
+						//fmt.Printf("%#v\n", cont)
+						if fmt.Sprintf("%c", c) == cont.Token {
+							stack = append(stack, cont)
+							stackdepth++
+							break
+						}
+					}
+				}
+			}
+			buf.WriteRune(c)
+			if c == '\n' {
+				p.next_line()
+			}
+		}
+		if stackdepth < 0 {
+			return &buf, nil
+		}
+		// Reset the 'escape' flag
+		escape = false
+	}
+	return nil, fmt.Errorf("unexpected EOF while looking for token `%s'", stack[stackdepth].TokenEnd)
+}
+
+func (p *Parser) Scan() error {
 	var buf bytes.Buffer
 	for {
 		c, err := p.next_rune()
@@ -43,30 +99,29 @@ func (p *Parser) Scan(parent tree.Node) error {
 			if err != io.EOF {
 				fmt.Printf("Error: %v\n", err)
 			}
-			p.process_scan_buf(&buf, sn)
+			//			p.process_scan_buf(&buf, sn)
 			break
 		}
 		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
 		if unicode.IsSpace(c) || c == '\n' {
-			p.process_scan_buf(&buf, sn)
+			//			p.process_scan_buf(&buf, sn)
 		} else if c == '\n' {
-			p.process_scan_buf(&buf, sn)
+			//			p.process_scan_buf(&buf, sn)
 			p.next_line()
 		} else {
 			buf.WriteRune(c)
 		}
 	}
-	fmt.Printf("%#v\n", parent)
 	return nil
 }
 
-func (p *Parser) process_scan_buf(buf *bytes.Buffer, parent tree.Node) {
-	fmt.Printf("buf contains: '%s'\n", buf.String())
-	child := tree.NewGeneric(parent)
-	child.Set_content(buf.String())
-	parent.Add_child(child)
-	buf.Reset()
-}
+//func (p *Parser) process_scan_buf(buf *bytes.Buffer, parent tree.Node) {
+//	fmt.Printf("buf contains: '%s'\n", buf.String())
+//	child := tree.NewGeneric(parent)
+//	child.Set_content(buf.String())
+//	parent.Add_child(child)
+//	buf.Reset()
+//}
 
 func (p *Parser) next_rune() (rune, error) {
 	r, _, err := p.input.ReadRune()

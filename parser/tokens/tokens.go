@@ -8,8 +8,10 @@ const (
 	SQUARE_BRACKET_CLOSE = `]`
 	CURLY_BRACE_OPEN     = `{`
 	CURLY_BRACE_CLOSE    = `}`
+	BACKSLASH            = `\`
 	SUBSHELL_OPEN        = `$(`
 	VARIABLE_OPEN        = `${`
+	ARITHMETIC_OPEN      = `$((`
 	DOUBLE_QUOTE         = `"`
 	SINGLE_QUOTE         = "'"
 	NEWLINE              = "\n"
