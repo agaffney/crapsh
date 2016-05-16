@@ -10,10 +10,19 @@ import (
 )
 
 type Parser struct {
-	input      *bufio.Reader
+	Position
+	input *bufio.Reader
+}
+
+type Position struct {
 	Line       int
 	Offset     int
 	LineOffset int
+}
+
+type ContainerStackEntry struct {
+	container *Container
+	position  Position
 }
 
 func NewParser() *Parser {
@@ -45,7 +54,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	var escape = false
 	var stackdepth int = 0
-	stack := []*Container{line_container}
+	stack := []ContainerStackEntry{ContainerStackEntry{line_container, p.Position}}
 	for {
 		c, err := p.next_rune()
 		if err != nil {
@@ -62,22 +71,22 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 			// the code below to turn off the 'escape' flag
 			continue
 		} else {
-			if escape == false && fmt.Sprintf("%c", c) == stack[stackdepth].TokenEnd {
+			buf.WriteRune(c)
+			if escape == false && check_buf_for_token(&buf, stack[stackdepth].container.TokenEnd) {
 				stack = stack[:len(stack)-1]
 				stackdepth--
-			} else if stack[stackdepth].AllowedContainers != nil {
+			} else if stack[stackdepth].container.AllowedContainers != nil {
 				for _, cont := range containers {
-					if stack[stackdepth].Allowed_container(cont.Name) {
+					if stack[stackdepth].container.Allowed_container(cont.Name) {
 						//fmt.Printf("%#v\n", cont)
-						if fmt.Sprintf("%c", c) == cont.Token {
-							stack = append(stack, cont)
+						if check_buf_for_token(&buf, cont.Token) {
+							stack = append(stack, ContainerStackEntry{cont, p.Position})
 							stackdepth++
 							break
 						}
 					}
 				}
 			}
-			buf.WriteRune(c)
 			if c == '\n' {
 				p.next_line()
 			}
@@ -88,7 +97,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 		// Reset the 'escape' flag
 		escape = false
 	}
-	return nil, fmt.Errorf("unexpected EOF while looking for token `%s'", stack[stackdepth].TokenEnd)
+	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].container.TokenEnd)
 }
 
 func (p *Parser) Scan() error {
@@ -140,4 +149,19 @@ func (p *Parser) unread_rune() error {
 func (p *Parser) next_line() {
 	p.Line++
 	p.LineOffset = 0
+}
+
+// Grab n bytes (length of token) from end of buf and compare to token
+func check_buf_for_token(buf *bytes.Buffer, token string) bool {
+	token_len := len(token)
+	if buf.Len() < token_len {
+		return false
+	}
+	buf_bytes := buf.Bytes()[buf.Len()-token_len:]
+	for i, b := range []byte(token) {
+		if buf_bytes[i] != b {
+			return false
+		}
+	}
+	return true
 }
