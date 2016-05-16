@@ -8,7 +8,8 @@ type Container struct {
 	Name              string
 	Token             string
 	TokenEnd          string
-	Escapes           bool
+	AllowEscapes      bool
+	AllowEndOnEOF     bool
 	AllowedContainers []string
 }
 
@@ -19,28 +20,29 @@ func init() {
 	line_container = &Container{
 		Name:              `Line`,
 		TokenEnd:          tokens.NEWLINE,
-		Escapes:           true,
+		AllowEscapes:      true,
+		AllowEndOnEOF:     true,
 		AllowedContainers: []string{"StringSingle", "StringDouble", "Variable"},
 	}
 	containers = []*Container{
 		{
-			Name:     `StringSingle`,
-			Token:    tokens.SINGLE_QUOTE,
-			TokenEnd: tokens.SINGLE_QUOTE,
-			Escapes:  false,
+			Name:         `StringSingle`,
+			Token:        tokens.SINGLE_QUOTE,
+			TokenEnd:     tokens.SINGLE_QUOTE,
+			AllowEscapes: false,
 		},
 		{
 			Name:              `StringDouble`,
 			Token:             tokens.DOUBLE_QUOTE,
 			TokenEnd:          tokens.DOUBLE_QUOTE,
-			Escapes:           true,
+			AllowEscapes:      true,
 			AllowedContainers: []string{"Variable", "Subshell"},
 		},
 		{
-			Name:     `Variable`,
-			Token:    tokens.VARIABLE_OPEN,
-			TokenEnd: tokens.CURLY_BRACE_CLOSE,
-			Escapes:  false,
+			Name:         `Variable`,
+			Token:        tokens.VARIABLE_OPEN,
+			TokenEnd:     tokens.CURLY_BRACE_CLOSE,
+			AllowEscapes: false,
 		},
 	}
 }

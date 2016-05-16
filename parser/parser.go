@@ -91,12 +91,19 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 				p.next_line()
 			}
 		}
+		// Return the buffer if we clear the container stack
 		if stackdepth < 0 {
 			return &buf, nil
 		}
 		// Reset the 'escape' flag
 		escape = false
 	}
+	// Return the buffer if we have only one container left and it allows
+	// ending on EOF
+	if stackdepth == 0 && stack[stackdepth].container.AllowEndOnEOF {
+		return &buf, nil
+	}
+	// Return syntax error if we didn't close all of our containers
 	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].container.TokenEnd)
 }
 
