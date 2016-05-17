@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"unicode"
 )
 
 type Parser struct {
@@ -65,7 +64,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 		}
 		//fmt.Printf("Stack item (%d): %#v\n", stackdepth+1, stack[stackdepth])
 		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
-		if c == '\\' {
+		if c == '\\' && stack[stackdepth].container.AllowEscapes {
 			escape = true
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
@@ -106,38 +105,6 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	// Return syntax error if we didn't close all of our containers
 	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].container.TokenEnd)
 }
-
-func (p *Parser) Scan() error {
-	var buf bytes.Buffer
-	for {
-		c, err := p.next_rune()
-		if err != nil {
-			if err != io.EOF {
-				fmt.Printf("Error: %v\n", err)
-			}
-			//			p.process_scan_buf(&buf, sn)
-			break
-		}
-		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
-		if unicode.IsSpace(c) || c == '\n' {
-			//			p.process_scan_buf(&buf, sn)
-		} else if c == '\n' {
-			//			p.process_scan_buf(&buf, sn)
-			p.next_line()
-		} else {
-			buf.WriteRune(c)
-		}
-	}
-	return nil
-}
-
-//func (p *Parser) process_scan_buf(buf *bytes.Buffer, parent tree.Node) {
-//	fmt.Printf("buf contains: '%s'\n", buf.String())
-//	child := tree.NewGeneric(parent)
-//	child.Set_content(buf.String())
-//	parent.Add_child(child)
-//	buf.Reset()
-//}
 
 func (p *Parser) next_rune() (rune, error) {
 	r, _, err := p.input.ReadRune()
