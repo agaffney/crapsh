@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/agaffney/crapsh/lang"
 	"io"
 	"strings"
 )
@@ -14,9 +15,9 @@ type Parser struct {
 }
 
 type Position struct {
-	Line       int
-	Offset     int
-	LineOffset int
+	Line       uint
+	Offset     uint
+	LineOffset uint
 }
 
 type ContainerStackEntry struct {
@@ -51,6 +52,7 @@ func (p *Parser) Parse(input string) {
 
 func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	var buf bytes.Buffer
+	var linebuf bytes.Buffer
 	var escape = false
 	var stackdepth int = 0
 	stack := []ContainerStackEntry{ContainerStackEntry{line_container, p.Position}}
@@ -72,8 +74,14 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 		} else {
 			buf.WriteRune(c)
 			if escape == false && check_buf_for_token(&buf, stack[stackdepth].container.TokenEnd) {
+				if stack[stackdepth].container.Factory != nil {
+					foo := stack[stackdepth].container.Factory(lang.New(buf.String(), p.Line))
+					fmt.Printf("%#v\n", foo)
+				}
 				stack = stack[:len(stack)-1]
 				stackdepth--
+				linebuf.Write(buf.Bytes())
+				buf.Reset()
 			} else if stack[stackdepth].container.AllowedContainers != nil {
 				for _, cont := range containers {
 					if stack[stackdepth].container.Allowed_container(cont.Name) {
@@ -92,7 +100,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 		}
 		// Return the buffer if we clear the container stack
 		if stackdepth < 0 {
-			return &buf, nil
+			return &linebuf, nil
 		}
 		// Reset the 'escape' flag
 		escape = false
@@ -100,7 +108,8 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	// Return the buffer if we have only one container left and it allows
 	// ending on EOF
 	if stackdepth == 0 && stack[stackdepth].container.AllowEndOnEOF {
-		return &buf, nil
+		linebuf.Write(buf.Bytes())
+		return &linebuf, nil
 	}
 	// Return syntax error if we didn't close all of our containers
 	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].container.TokenEnd)

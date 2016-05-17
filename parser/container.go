@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/agaffney/crapsh/lang"
 	"github.com/agaffney/crapsh/parser/tokens"
 )
 
@@ -11,6 +12,7 @@ type Container struct {
 	AllowEscapes      bool
 	AllowEndOnEOF     bool
 	AllowedContainers []string
+	Factory           lang.FactoryFunc
 }
 
 var containers []*Container
@@ -30,6 +32,7 @@ func init() {
 			Token:        tokens.SINGLE_QUOTE,
 			TokenEnd:     tokens.SINGLE_QUOTE,
 			AllowEscapes: false,
+			Factory:      lang.NewStringSingle,
 		},
 		{
 			Name:              `StringDouble`,
@@ -37,6 +40,7 @@ func init() {
 			TokenEnd:          tokens.DOUBLE_QUOTE,
 			AllowEscapes:      true,
 			AllowedContainers: []string{"Variable", "Subshell"},
+			Factory:           lang.NewStringDouble,
 		},
 		{
 			Name:         `Variable`,
