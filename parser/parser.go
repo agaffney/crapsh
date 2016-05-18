@@ -75,7 +75,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 			buf.WriteRune(c)
 			if escape == false && check_buf_for_token(&buf, stack[stackdepth].container.TokenEnd) {
 				if stack[stackdepth].container.Factory != nil {
-					foo := stack[stackdepth].container.Factory(lang.New(buf.String(), p.Line))
+					foo := stack[stackdepth].container.Factory(lang.NewGeneric(buf.String(), p.Line))
 					fmt.Printf("%#v\n", foo)
 				}
 				stack = stack[:len(stack)-1]

@@ -12,27 +12,19 @@ type ContainerBase struct {
 	children []Element
 }
 
-type Base struct {
+type Generic struct {
 	Line    uint
 	Content string
 }
 
-type Generic struct {
-	*Base
+type FactoryFunc func(*Generic) Element
+
+func NewGeneric(content string, line uint) *Generic {
+	return &Generic{Content: content, Line: line}
 }
 
-type FactoryFunc func(*Base) Element
-
-func New(content string, line uint) *Base {
-	return &Base{Content: content, Line: line}
-}
-
-func NewGeneric(base *Base) Element {
-	return &Generic{Base: base}
-}
-
-func (b *Base) Output() string {
-	return b.Content
+func (g *Generic) Output() string {
+	return g.Content
 }
 
 func (c *ContainerBase) AddChild(e Element) {

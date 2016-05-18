@@ -7,15 +7,15 @@ const (
 )
 
 type String struct {
-	*Base
+	*Generic
 	*ContainerBase
 	Type int
 }
 
-func NewStringSingle(base *Base) Element {
-	return &String{Base: base, Type: STRING_TYPE_SINGLE}
+func NewStringSingle(base *Generic) Element {
+	return &String{Generic: base, Type: STRING_TYPE_SINGLE}
 }
 
-func NewStringDouble(base *Base) Element {
-	return &String{Base: base, Type: STRING_TYPE_DOUBLE}
+func NewStringDouble(base *Generic) Element {
+	return &String{Generic: base, Type: STRING_TYPE_DOUBLE}
 }
