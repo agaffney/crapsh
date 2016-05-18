@@ -8,13 +8,10 @@ type Container interface {
 	AddChild(Element)
 }
 
-type ContainerBase struct {
-	children []Element
-}
-
 type Generic struct {
-	Line    uint
-	Content string
+	Line     uint
+	Content  string
+	children []Element
 }
 
 type FactoryFunc func(*Generic) Element
@@ -27,9 +24,9 @@ func (g *Generic) Output() string {
 	return g.Content
 }
 
-func (c *ContainerBase) AddChild(e Element) {
-	if c.children == nil {
-		c.children = make([]Element, 0)
+func (g *Generic) AddChild(e Element) {
+	if g.children == nil {
+		g.children = make([]Element, 0)
 	}
-	c.children = append(c.children, e)
+	g.children = append(g.children, e)
 }

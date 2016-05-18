@@ -8,7 +8,6 @@ const (
 
 type String struct {
 	*Generic
-	*ContainerBase
 	Type int
 }
 
