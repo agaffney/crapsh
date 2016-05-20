@@ -37,7 +37,7 @@ func (p *Parser) Parse(input string) {
 	p.LineOffset = 0
 	p.Offset = 0
 	for {
-		line, err := p.Get_next_line()
+		line, err := p.GetNextLine()
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			break
@@ -50,14 +50,14 @@ func (p *Parser) Parse(input string) {
 	}
 }
 
-func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
+func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	var linebuf bytes.Buffer
 	var escape = false
 	var stackdepth int = 0
-	stack := []HintStackEntry{HintStackEntry{lang.GetHint("Line"), p.Position}}
+	stack := []HintStackEntry{HintStackEntry{lang.GetElementHint("Line"), p.Position}}
 	for {
-		c, err := p.next_rune()
+		c, err := p.nextRune()
 		if err != nil {
 			if err != io.EOF {
 				return nil, err
@@ -73,10 +73,10 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 			continue
 		} else {
 			buf.WriteRune(c)
-			if escape == false && check_buf_for_token(&buf, stack[stackdepth].hint.TokenEnd) {
+			if escape == false && checkBufForToken(&buf, stack[stackdepth].hint.TokenEnd) {
 				if stack[stackdepth].hint.Factory != nil {
 					foo := stack[stackdepth].hint.Factory(lang.NewGeneric(buf.String(), p.Line))
-					fmt.Printf("%#v\n", foo)
+					fmt.Printf("%s\n", foo)
 				}
 				stack = stack[:len(stack)-1]
 				stackdepth--
@@ -84,9 +84,9 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 				buf.Reset()
 			} else if stack[stackdepth].hint.AllowedElements != nil {
 				for _, cont := range lang.ParserHints {
-					if stack[stackdepth].hint.Allowed_container(cont.Name) {
+					if stack[stackdepth].hint.AllowedElement(cont.Name) {
 						//fmt.Printf("%#v\n", cont)
-						if check_buf_for_token(&buf, cont.TokenStart) {
+						if checkBufForToken(&buf, cont.TokenStart) {
 							stack = append(stack, HintStackEntry{cont, p.Position})
 							stackdepth++
 							break
@@ -95,7 +95,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 				}
 			}
 			if c == '\n' {
-				p.next_line()
+				p.nextLine()
 			}
 		}
 		// Return the buffer if we clear the container stack
@@ -115,27 +115,27 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].hint.TokenEnd)
 }
 
-func (p *Parser) next_rune() (rune, error) {
+func (p *Parser) nextRune() (rune, error) {
 	r, _, err := p.input.ReadRune()
 	p.Offset++
 	p.LineOffset++
 	return r, err
 }
 
-func (p *Parser) unread_rune() error {
+func (p *Parser) unreadRune() error {
 	err := p.input.UnreadRune()
 	p.Offset--
 	p.LineOffset--
 	return err
 }
 
-func (p *Parser) next_line() {
+func (p *Parser) nextLine() {
 	p.Line++
 	p.LineOffset = 0
 }
 
 // Grab n bytes (length of token) from end of buf and compare to token
-func check_buf_for_token(buf *bytes.Buffer, token string) bool {
+func checkBufForToken(buf *bytes.Buffer, token string) bool {
 	token_len := len(token)
 	if buf.Len() < token_len {
 		return false

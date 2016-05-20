@@ -1,5 +1,9 @@
 package lang
 
+import (
+	"fmt"
+)
+
 type Element interface {
 	Output() string
 }
@@ -25,6 +29,10 @@ func (g *Generic) AddChild(e Element) {
 	g.children = append(g.children, e)
 }
 
+func (g *Generic) String() string {
+	return fmt.Sprintf("<Generic    content: %#v>", g.Content)
+}
+
 type FactoryFunc func(*Generic) Element
 
 type ParserHint struct {
@@ -38,7 +46,7 @@ type ParserHint struct {
 	Factory         FactoryFunc
 }
 
-func GetHint(s string) *ParserHint {
+func GetElementHint(s string) *ParserHint {
 	for _, foo := range ParserHints {
 		if s == foo.Name {
 			return foo
@@ -47,7 +55,7 @@ func GetHint(s string) *ParserHint {
 	return nil
 }
 
-func (h *ParserHint) Allowed_container(s string) bool {
+func (h *ParserHint) AllowedElement(s string) bool {
 	for _, foo := range h.AllowedElements {
 		if s == foo {
 			return true
