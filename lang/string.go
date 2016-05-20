@@ -33,11 +33,11 @@ func init() {
 			Factory:       NewStringSingle,
 		},
 		{
-			Name:              `StringDouble`,
-			TokenStart:        tokens.DOUBLE_QUOTE,
-			TokenEnd:          tokens.DOUBLE_QUOTE,
-			AllowedContainers: []string{"Variable", "Subshell"},
-			Factory:           NewStringDouble,
+			Name:            `StringDouble`,
+			TokenStart:      tokens.DOUBLE_QUOTE,
+			TokenEnd:        tokens.DOUBLE_QUOTE,
+			AllowedElements: []string{"Variable", "Subshell"},
+			Factory:         NewStringDouble,
 		},
 	})
 }

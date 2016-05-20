@@ -28,14 +28,14 @@ func (g *Generic) AddChild(e Element) {
 type FactoryFunc func(*Generic) Element
 
 type ParserHint struct {
-	Name              string
-	TokenStart        string
-	TokenEnd          string
-	IgnoreEscapes     bool
-	AllowEndOnEOF     bool
-	SkipEndToken      bool
-	AllowedContainers []string
-	Factory           FactoryFunc
+	Name            string
+	TokenStart      string
+	TokenEnd        string
+	IgnoreEscapes   bool
+	AllowEndOnEOF   bool
+	SkipEndToken    bool
+	AllowedElements []string
+	Factory         FactoryFunc
 }
 
 func GetHint(s string) *ParserHint {
@@ -48,7 +48,7 @@ func GetHint(s string) *ParserHint {
 }
 
 func (h *ParserHint) Allowed_container(s string) bool {
-	for _, foo := range h.AllowedContainers {
+	for _, foo := range h.AllowedElements {
 		if s == foo {
 			return true
 		}

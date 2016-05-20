@@ -82,7 +82,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 				stackdepth--
 				linebuf.Write(buf.Bytes())
 				buf.Reset()
-			} else if stack[stackdepth].hint.AllowedContainers != nil {
+			} else if stack[stackdepth].hint.AllowedElements != nil {
 				for _, cont := range lang.ParserHints {
 					if stack[stackdepth].hint.Allowed_container(cont.Name) {
 						//fmt.Printf("%#v\n", cont)
