@@ -1,32 +1,17 @@
 package lang
 
-type Element interface {
-	Output() string
-}
+import (
+	"github.com/agaffney/crapsh/parser/tokens"
+)
 
-type Container interface {
-	AddChild(Element)
-}
+func init() {
+	registerParserHints([]*ParserHint{
+		{
+			Name:              `Line`,
+			TokenEnd:          tokens.NEWLINE,
+			AllowEndOnEOF:     true,
+			AllowedContainers: []string{"StringSingle", "StringDouble", "Variable"},
+		},
+	})
 
-type Generic struct {
-	Line     uint
-	Content  string
-	children []Element
-}
-
-type FactoryFunc func(*Generic) Element
-
-func NewGeneric(content string, line uint) *Generic {
-	return &Generic{Content: content, Line: line}
-}
-
-func (g *Generic) Output() string {
-	return g.Content
-}
-
-func (g *Generic) AddChild(e Element) {
-	if g.children == nil {
-		g.children = make([]Element, 0)
-	}
-	g.children = append(g.children, e)
 }

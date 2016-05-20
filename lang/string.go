@@ -1,5 +1,9 @@
 package lang
 
+import (
+	"github.com/agaffney/crapsh/parser/tokens"
+)
+
 const (
 	STRING_TYPE_INVALID int = iota
 	STRING_TYPE_SINGLE
@@ -17,4 +21,23 @@ func NewStringSingle(base *Generic) Element {
 
 func NewStringDouble(base *Generic) Element {
 	return &String{Generic: base, Type: STRING_TYPE_DOUBLE}
+}
+
+func init() {
+	registerParserHints([]*ParserHint{
+		{
+			Name:          `StringSingle`,
+			TokenStart:    tokens.SINGLE_QUOTE,
+			TokenEnd:      tokens.SINGLE_QUOTE,
+			IgnoreEscapes: true,
+			Factory:       NewStringSingle,
+		},
+		{
+			Name:              `StringDouble`,
+			TokenStart:        tokens.DOUBLE_QUOTE,
+			TokenEnd:          tokens.DOUBLE_QUOTE,
+			AllowedContainers: []string{"Variable", "Subshell"},
+			Factory:           NewStringDouble,
+		},
+	})
 }

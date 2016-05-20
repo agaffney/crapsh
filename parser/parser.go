@@ -20,9 +20,9 @@ type Position struct {
 	LineOffset uint
 }
 
-type ContainerStackEntry struct {
-	container *Container
-	position  Position
+type HintStackEntry struct {
+	hint     *lang.ParserHint
+	position Position
 }
 
 func NewParser() *Parser {
@@ -55,7 +55,7 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	var linebuf bytes.Buffer
 	var escape = false
 	var stackdepth int = 0
-	stack := []ContainerStackEntry{ContainerStackEntry{line_container, p.Position}}
+	stack := []HintStackEntry{HintStackEntry{lang.GetHint("Line"), p.Position}}
 	for {
 		c, err := p.next_rune()
 		if err != nil {
@@ -66,28 +66,28 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 		}
 		//fmt.Printf("Stack item (%d): %#v\n", stackdepth+1, stack[stackdepth])
 		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
-		if c == '\\' && stack[stackdepth].container.AllowEscapes {
+		if c == '\\' && !stack[stackdepth].hint.IgnoreEscapes {
 			escape = true
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
 			continue
 		} else {
 			buf.WriteRune(c)
-			if escape == false && check_buf_for_token(&buf, stack[stackdepth].container.TokenEnd) {
-				if stack[stackdepth].container.Factory != nil {
-					foo := stack[stackdepth].container.Factory(lang.NewGeneric(buf.String(), p.Line))
+			if escape == false && check_buf_for_token(&buf, stack[stackdepth].hint.TokenEnd) {
+				if stack[stackdepth].hint.Factory != nil {
+					foo := stack[stackdepth].hint.Factory(lang.NewGeneric(buf.String(), p.Line))
 					fmt.Printf("%#v\n", foo)
 				}
 				stack = stack[:len(stack)-1]
 				stackdepth--
 				linebuf.Write(buf.Bytes())
 				buf.Reset()
-			} else if stack[stackdepth].container.AllowedContainers != nil {
-				for _, cont := range containers {
-					if stack[stackdepth].container.Allowed_container(cont.Name) {
+			} else if stack[stackdepth].hint.AllowedContainers != nil {
+				for _, cont := range lang.ParserHints {
+					if stack[stackdepth].hint.Allowed_container(cont.Name) {
 						//fmt.Printf("%#v\n", cont)
-						if check_buf_for_token(&buf, cont.Token) {
-							stack = append(stack, ContainerStackEntry{cont, p.Position})
+						if check_buf_for_token(&buf, cont.TokenStart) {
+							stack = append(stack, HintStackEntry{cont, p.Position})
 							stackdepth++
 							break
 						}
@@ -107,12 +107,12 @@ func (p *Parser) Get_next_line() (*bytes.Buffer, error) {
 	}
 	// Return the buffer if we have only one container left and it allows
 	// ending on EOF
-	if stackdepth == 0 && stack[stackdepth].container.AllowEndOnEOF {
+	if stackdepth == 0 && stack[stackdepth].hint.AllowEndOnEOF {
 		linebuf.Write(buf.Bytes())
 		return &linebuf, nil
 	}
 	// Return syntax error if we didn't close all of our containers
-	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].container.TokenEnd)
+	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].hint.TokenEnd)
 }
 
 func (p *Parser) next_rune() (rune, error) {
