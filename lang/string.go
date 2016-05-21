@@ -26,17 +26,18 @@ func NewStringDouble(base *Generic) Element {
 func init() {
 	registerParserHints([]*ParserHint{
 		{
-			Name:          `StringSingle`,
-			TokenStart:    tokens.SINGLE_QUOTE,
-			TokenEnd:      tokens.SINGLE_QUOTE,
-			IgnoreEscapes: true,
-			Factory:       NewStringSingle,
+			Name:            `StringSingle`,
+			TokenStart:      tokens.SINGLE_QUOTE,
+			TokenEnd:        tokens.SINGLE_QUOTE,
+			IgnoreEscapes:   true,
+			AllowedElements: []string{"Generic"},
+			Factory:         NewStringSingle,
 		},
 		{
 			Name:            `StringDouble`,
 			TokenStart:      tokens.DOUBLE_QUOTE,
 			TokenEnd:        tokens.DOUBLE_QUOTE,
-			AllowedElements: []string{"Variable", "Subshell"},
+			AllowedElements: []string{"Variable", "Subshell", "Generic"},
 			Factory:         NewStringDouble,
 		},
 	})

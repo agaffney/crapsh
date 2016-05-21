@@ -76,21 +76,46 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			// the code below to turn off the 'escape' flag
 			continue
 		} else {
-			buf.WriteRune(c)
-			if escape == false && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
+			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
+				e := lang.NewGeneric(buf.String(), p.Line)
+				fmt.Printf("%#v\n", e)
 				if p.stack[p.stackdepth].hint.Factory != nil {
-					foo := p.stack[p.stackdepth].hint.Factory(lang.NewGeneric(buf.String(), p.Line))
+					foo := p.stack[p.stackdepth].hint.Factory(e)
 					fmt.Printf("%s\n", foo)
+				} else {
+
+				}
+				if p.stackCur().hint.CaptureAll {
+					// We're using the end token from our "parent", so if it's found,
+					// we should remove the CaptureAll element from the stack
+					p.stackRemove()
 				}
 				p.stackRemove()
 				linebuf.Write(buf.Bytes())
 				buf.Reset()
 			} else {
-				for _, hint := range p.stackLast().allowed {
-					if checkBufForToken(&buf, hint.TokenStart) {
+				found := false
+				for _, hint := range p.stackCur().allowed {
+					if checkBufForToken(&buf, hint.TokenStart) || hint.CaptureAll {
+						if p.stackCur().hint.CaptureAll {
+							// We're using the allowed elements from our "parent", so if one is found,
+							// we should remove the CaptureAll element from the stack
+							p.stackRemove()
+						}
 						p.stackAdd(hint)
+						if hint.SkipCapture {
+							p.unreadRune()
+						} else {
+							buf.WriteRune(c)
+						}
+						found = true
 						break
 					}
+				}
+				if !found && p.stackCur().hint.CaptureAll {
+					buf.WriteRune(c)
+				} else {
+					// TODO: return an error of some kind
 				}
 			}
 			if c == '\n' {
@@ -144,25 +169,49 @@ func (p *Parser) stackAdd(hint *lang.ParserHint) {
 		p.stack = make([]*HintStackEntry, 0)
 		p.stackdepth = -1
 	}
-	e := &HintStackEntry{hint, lang.GetElementHints(hint.AllowedElements), p.Position}
+	allowed := []*lang.ParserHint{}
+	if hint.CaptureAll {
+		// If the current stack entry captures all, we need to use the allowed
+		// elements from the "parent". We also want to filter ourselves out
+		for _, foo := range lang.GetElementHints(p.stackCur().hint.AllowedElements) {
+			if !foo.CaptureAll {
+				allowed = append(allowed, foo)
+			}
+		}
+		// Use the end token from the parent
+		hint.TokenEnd = p.stackCur().hint.TokenEnd
+	} else {
+		allowed = lang.GetElementHints(hint.AllowedElements)
+	}
+	e := &HintStackEntry{hint, allowed, p.Position}
 	p.stack = append(p.stack, e)
 	p.stackdepth++
-	//fmt.Printf("\nstack[%d] = %#v\n", p.stackdepth, hint)
-	//fmt.Printf("  allowed = [\n")
-	//for _, foo := range e.allowed {
-	//	fmt.Printf("    %#v,\n", foo)
-	//}
-	//fmt.Printf("  ]\n\n")
+	fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, hint)
+	fmt.Printf("  allowed = [\n")
+	for _, foo := range e.allowed {
+		fmt.Printf("    %#v,\n", foo)
+	}
+	fmt.Printf("  ]\n\n")
 }
 
 func (p *Parser) stackRemove() {
 	p.stack = p.stack[:len(p.stack)-1]
 	p.stackdepth--
+	if p.stackdepth >= 0 {
+		fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, p.stack[p.stackdepth].hint)
+	}
 }
 
-func (p *Parser) stackLast() *HintStackEntry {
+func (p *Parser) stackCur() *HintStackEntry {
 	if p.stackdepth >= 0 {
 		return p.stack[p.stackdepth]
+	}
+	return nil
+}
+
+func (p *Parser) stackPrev() *HintStackEntry {
+	if p.stackdepth-1 >= 0 {
+		return p.stack[p.stackdepth-1]
 	}
 	return nil
 }
