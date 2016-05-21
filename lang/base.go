@@ -7,11 +7,9 @@ import (
 func init() {
 	registerParserHints([]*ParserHint{
 		{
-			Name:             `Line`,
-			TokenEnd:         tokens.NEWLINE,
-			EndTokenOptional: true,
-			SkipCapture:      true,
-			AllowedElements:  []string{"Command"},
+			Name:            `Line`,
+			SkipCapture:     true,
+			AllowedElements: []string{"Command"},
 		},
 		{
 			Name:             `Command`,
@@ -23,7 +21,7 @@ func init() {
 		{
 			Name:            `Argument`,
 			EndOnWhitespace: true,
-			//SkipCapture:     true,
+			SkipCapture:     true,
 			AllowedElements: []string{"StringSingle", "StringDouble", "DollarSign", "Generic"},
 		},
 		{

@@ -75,7 +75,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			break
 		}
 		//fmt.Printf("Stack item (%d): %#v\n", p.stackdepth+1, p.stack[p.stackdepth])
-		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
+		fmt.Printf("Line %d, offset %d, overall offset %d: %#U, buf: %#v\n", p.Line, p.LineOffset, p.Offset, c, buf.String())
 		if c == '\\' && !p.stack[p.stackdepth].hint.IgnoreEscapes {
 			escape = !escape
 			// Explicitly skip to the next iteration so we don't hit
@@ -146,7 +146,6 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				if p.stackCur().hint.CaptureAll {
 					buf.WriteRune(c)
 				} else {
-					// TODO: return an error of some kind
 					return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
 				}
 			}
@@ -158,6 +157,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 	for p.stackdepth >= MIN_STACK_DEPTH {
 		if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
 			p.stackRemove(buf)
+			buf.Reset()
 			fmt.Println("removing from stack due to EOL/EOF")
 		} else {
 			break
