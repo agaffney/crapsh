@@ -24,6 +24,7 @@ type Position struct {
 
 type HintStackEntry struct {
 	hint     *lang.ParserHint
+	allowed  []*lang.ParserHint
 	position Position
 }
 
@@ -58,8 +59,7 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 	var escape = false
 	// Reset the hint stack
 	p.stack = nil
-	p.stack = []*HintStackEntry{&HintStackEntry{lang.GetElementHints([]string{"Line"})[0], p.Position}}
-	p.stackdepth = 0
+	p.stackAdd(lang.GetElementHints([]string{"Line"})[0])
 	for {
 		c, err := p.nextRune()
 		if err != nil {
@@ -82,30 +82,21 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 					foo := p.stack[p.stackdepth].hint.Factory(lang.NewGeneric(buf.String(), p.Line))
 					fmt.Printf("%s\n", foo)
 				}
-				//p.stack = p.stack[:len(p.stack)-1]
-				//p.stackdepth--
-				p.stackPop()
+				p.stackRemove()
 				linebuf.Write(buf.Bytes())
 				buf.Reset()
-			} else if p.stack[p.stackdepth].hint.AllowedElements != nil {
-				for _, cont := range lang.ParserHints {
-					if p.stack[p.stackdepth].hint.AllowedElement(cont.Name) {
-						//fmt.Printf("%#v\n", cont)
-						if checkBufForToken(&buf, cont.TokenStart) {
-							//p.stack = append(p.stack, HintStackEntry{cont, p.Position})
-							//p.stackdepth++
-							p.stackPush(&HintStackEntry{cont, p.Position})
-							break
-						}
+			} else {
+				for _, hint := range p.stackLast().allowed {
+					if checkBufForToken(&buf, hint.TokenStart) {
+						p.stackAdd(hint)
+						break
 					}
 				}
 			}
 			if c == '\n' {
 				p.nextLine()
 				if p.stack[p.stackdepth].hint.EndOnNewline {
-					//p.stack = p.stack[:len(p.stack)-1]
-					//p.stackdepth--
-					p.stackPop()
+					p.stackRemove()
 					linebuf.Write(buf.Bytes())
 					buf.Reset()
 					break
@@ -118,9 +109,7 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 	// Remove any stack items that allow ending on EOF
 	for p.stackdepth >= 0 {
 		if p.stack[p.stackdepth].hint.EndOnEOF {
-			//p.stack = p.stack[:len(p.stack)-1]
-			//p.stackdepth--
-			p.stackPop()
+			p.stackRemove()
 		}
 	}
 	// Return the buffer if the stack is empty
@@ -150,17 +139,22 @@ func (p *Parser) nextLine() {
 	p.LineOffset = 0
 }
 
-func (p *Parser) stackPush(e *HintStackEntry) {
+func (p *Parser) stackAdd(h *lang.ParserHint) {
+	if p.stack == nil {
+		p.stack = make([]*HintStackEntry, 0)
+		p.stackdepth = -1
+	}
+	e := &HintStackEntry{h, lang.GetElementHints(h.AllowedElements), p.Position}
 	p.stack = append(p.stack, e)
 	p.stackdepth++
 }
 
-func (p *Parser) stackPop() {
+func (p *Parser) stackRemove() {
 	p.stack = p.stack[:len(p.stack)-1]
 	p.stackdepth--
 }
 
-func (p *Parser) stackGetLast() *HintStackEntry {
+func (p *Parser) stackLast() *HintStackEntry {
 	if p.stackdepth >= 0 {
 		return p.stack[p.stackdepth]
 	}
