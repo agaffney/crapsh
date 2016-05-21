@@ -61,6 +61,7 @@ func (p *Parser) Parse(input string) {
 
 func (p *Parser) GetNextLine() (lang.Element, error) {
 	var buf bytes.Buffer
+	var tmpbuf bytes.Buffer
 	var escape = false
 	// Reset the hint stack
 	p.stack = nil
@@ -109,7 +110,13 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				buf.Reset()
 				continue
 			}
-			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
+			// Add new character to tmpbuf for checking start/end tokens
+			tmpbuf.Reset()
+			tmpbuf.Write(buf.Bytes())
+			tmpbuf.WriteRune(c)
+			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&tmpbuf, p.stack[p.stackdepth].hint.TokenEnd) {
+				// Hack for now to grab end token
+				buf.WriteRune(c)
 				if p.stackCur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
@@ -124,7 +131,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			}
 			found := false
 			for _, hint := range p.stackCur().allowed {
-				if checkBufForToken(&buf, hint.TokenStart) || hint.CaptureAll {
+				if checkBufForToken(&tmpbuf, hint.TokenStart) || hint.CaptureAll {
 					if p.stackCur().hint.CaptureAll {
 						// We're using the allowed elements from our "parent", so if one is found,
 						// we should remove the CaptureAll element from the stack
