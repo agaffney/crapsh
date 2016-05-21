@@ -71,7 +71,7 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 		//fmt.Printf("Stack item (%d): %#v\n", p.stackdepth+1, p.stack[p.stackdepth])
 		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
 		if c == '\\' && !p.stack[p.stackdepth].hint.IgnoreEscapes {
-			escape = true
+			escape = !escape
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
 			continue
@@ -95,7 +95,7 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			}
 			if c == '\n' {
 				p.nextLine()
-				if p.stack[p.stackdepth].hint.EndOnNewline {
+				if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
 					p.stackRemove()
 					linebuf.Write(buf.Bytes())
 					buf.Reset()
@@ -108,7 +108,7 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 	}
 	// Remove any stack items that allow ending on EOF
 	for p.stackdepth >= 0 {
-		if p.stack[p.stackdepth].hint.EndOnEOF {
+		if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
 			p.stackRemove()
 		}
 	}
@@ -139,14 +139,20 @@ func (p *Parser) nextLine() {
 	p.LineOffset = 0
 }
 
-func (p *Parser) stackAdd(h *lang.ParserHint) {
+func (p *Parser) stackAdd(hint *lang.ParserHint) {
 	if p.stack == nil {
 		p.stack = make([]*HintStackEntry, 0)
 		p.stackdepth = -1
 	}
-	e := &HintStackEntry{h, lang.GetElementHints(h.AllowedElements), p.Position}
+	e := &HintStackEntry{hint, lang.GetElementHints(hint.AllowedElements), p.Position}
 	p.stack = append(p.stack, e)
 	p.stackdepth++
+	//fmt.Printf("\nstack[%d] = %#v\n", p.stackdepth, hint)
+	//fmt.Printf("  allowed = [\n")
+	//for _, foo := range e.allowed {
+	//	fmt.Printf("    %#v,\n", foo)
+	//}
+	//fmt.Printf("  ]\n\n")
 }
 
 func (p *Parser) stackRemove() {

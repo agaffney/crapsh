@@ -7,23 +7,20 @@ import (
 func init() {
 	registerParserHints([]*ParserHint{
 		{
-			Name:            `Line`,
-			TokenEnd:        tokens.NEWLINE,
-			EndOnEOF:        true,
-			AllowedElements: []string{"Command"},
+			Name:             `Line`,
+			TokenEnd:         tokens.NEWLINE,
+			EndTokenOptional: true,
+			AllowedElements:  []string{"Command"},
 		},
 		{
-			Name:            `Command`,
-			TokenEnd:        tokens.SEMICOLON,
-			EndOnNewline:    true,
-			EndOnEOF:        true,
-			AllowedElements: []string{"Argument"},
+			Name:             `Command`,
+			TokenEnd:         tokens.SEMICOLON,
+			EndTokenOptional: true,
+			AllowedElements:  []string{"Argument"},
 		},
 		{
 			Name:            `Argument`,
 			EndOnWhitespace: true,
-			EndOnNewline:    true,
-			EndOnEOF:        true,
 			AllowedElements: []string{"StringSingle", "StringDouble", "Variable"},
 		},
 	})

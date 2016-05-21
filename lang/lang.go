@@ -36,17 +36,14 @@ func (g *Generic) String() string {
 type FactoryFunc func(*Generic) Element
 
 type ParserHint struct {
-	Name            string
-	TokenStart      string
-	TokenEnd        string
-	IgnoreEscapes   bool
-	SkipEndToken    bool
-	CaptureAll      bool
-	EndOnEOF        bool
-	EndOnWhitespace bool
-	EndOnNewline    bool
-	AllowedElements []string
-	Factory         FactoryFunc
+	Name             string
+	TokenStart       string
+	TokenEnd         string
+	IgnoreEscapes    bool
+	EndOnWhitespace  bool
+	EndTokenOptional bool
+	AllowedElements  []string
+	Factory          FactoryFunc
 }
 
 func GetElementHints(elements []string) []*ParserHint {
