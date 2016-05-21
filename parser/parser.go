@@ -7,7 +7,7 @@ import (
 	"github.com/agaffney/crapsh/lang"
 	"io"
 	"strings"
-	//"unicode"
+	"unicode"
 )
 
 const (
@@ -52,20 +52,20 @@ func (p *Parser) Parse(input string) {
 			break
 		}
 		// EOF
-		if line.Len() == 0 {
+		if line.NumChildren() == 0 {
 			break
 		}
 		fmt.Printf("Line: %s\n", line)
 	}
 }
 
-func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
+func (p *Parser) GetNextLine() (lang.Element, error) {
 	var buf bytes.Buffer
-	var linebuf bytes.Buffer
 	var escape = false
 	// Reset the hint stack
 	p.stack = nil
 	p.stackAdd(lang.GetElementHints([]string{"Line"})[0])
+	line_element := p.stackCur().element
 	for {
 		c, err := p.nextRune()
 		if err != nil {
@@ -82,30 +82,45 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			// the code below to turn off the 'escape' flag
 			continue
 		} else {
-			if c == '\n' && !escape {
+			if c == '\n' {
 				p.nextLine()
-				if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
-					p.stackRemove(buf)
-					linebuf.Write(buf.Bytes())
-					buf.Reset()
-					break
+				if escape {
+					buf.WriteRune(c)
+				} else {
+					if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
+						p.stackRemove(buf)
+						fmt.Println("removing from stack due to newline")
+						buf.Reset()
+						break
+					}
 				}
+				continue
 			}
-			//if unicode.IsSpace(c) && !escape && p.stackCur().hint.EndOnWhitespace {
-			//	p.stackRemove(buf)
-			//	buf.Reset()
-			//	break
-			//}
+			if unicode.IsSpace(c) && !escape && p.stackCur().hint.EndOnWhitespace {
+				if p.stackCur().hint.CaptureAll {
+					// We're using the EndOnWhitespace value from our "parent", so if it's found,
+					// we should remove the CaptureAll element from the stack
+					p.stackRemove(buf)
+					fmt.Println("removing from stack due to CaptureAll and whitespace")
+					buf.Reset()
+				}
+				p.stackRemove(buf)
+				fmt.Println("removing from stack due to whitespace")
+				buf.Reset()
+				continue
+			}
 			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
 				if p.stackCur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
 					p.stackRemove(buf)
+					fmt.Println("removing from stack due to CaptureAll and finding end token")
+					buf.Reset()
 				}
 				p.stackRemove(buf)
-				linebuf.Write(buf.Bytes())
+				fmt.Println("removing from stack due to finding end token")
 				buf.Reset()
-				break
+				continue
 			}
 			found := false
 			for _, hint := range p.stackCur().allowed {
@@ -114,6 +129,8 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 						// We're using the allowed elements from our "parent", so if one is found,
 						// we should remove the CaptureAll element from the stack
 						p.stackRemove(buf)
+						fmt.Println("removing from stack due to CaptureAll and finding start token")
+						buf.Reset()
 					}
 					p.stackAdd(hint)
 					if hint.SkipCapture {
@@ -125,10 +142,13 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 					break
 				}
 			}
-			if !found && p.stackCur().hint.CaptureAll {
-				buf.WriteRune(c)
-			} else {
-				// TODO: return an error of some kind
+			if !found {
+				if p.stackCur().hint.CaptureAll {
+					buf.WriteRune(c)
+				} else {
+					// TODO: return an error of some kind
+					return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
+				}
 			}
 		}
 		// Reset the 'escape' flag
@@ -138,11 +158,14 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 	for p.stackdepth >= MIN_STACK_DEPTH {
 		if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
 			p.stackRemove(buf)
+			fmt.Println("removing from stack due to EOL/EOF")
+		} else {
+			break
 		}
 	}
 	// Return the buffer if the stack is empty
 	if p.stackdepth < MIN_STACK_DEPTH {
-		return &linebuf, nil
+		return line_element, nil
 	}
 	// Return syntax error if we didn't close all of our containers
 	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", p.stack[p.stackdepth].position.Line, p.stack[p.stackdepth].hint.TokenEnd)

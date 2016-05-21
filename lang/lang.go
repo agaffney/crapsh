@@ -8,6 +8,7 @@ type Element interface {
 	Output() string
 	AddChild(Element)
 	SetContent(string)
+	NumChildren() int
 }
 
 type Generic struct {
@@ -35,6 +36,10 @@ func (g *Generic) AddChild(e Element) {
 
 func (g *Generic) SetContent(content string) {
 	g.Content = content
+}
+
+func (g *Generic) NumChildren() int {
+	return len(g.children)
 }
 
 func (g *Generic) String() string {
