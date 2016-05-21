@@ -6,16 +6,19 @@ import (
 
 type Element interface {
 	Output() string
+	AddChild(Element)
+	SetContent(string)
 }
 
 type Generic struct {
 	Line     uint
 	Content  string
 	children []Element
+	typeName string
 }
 
-func NewGeneric(content string, line uint) *Generic {
-	return &Generic{Content: content, Line: line}
+func NewGeneric(content string, line uint, typeName string) *Generic {
+	return &Generic{Content: content, Line: line, typeName: typeName}
 }
 
 func (g *Generic) Output() string {
@@ -27,10 +30,19 @@ func (g *Generic) AddChild(e Element) {
 		g.children = make([]Element, 0)
 	}
 	g.children = append(g.children, e)
+	fmt.Printf("new child: %s\n", e)
+}
+
+func (g *Generic) SetContent(content string) {
+	g.Content = content
 }
 
 func (g *Generic) String() string {
-	return fmt.Sprintf("<Generic    content: %#v>", g.Content)
+	typeName := g.typeName
+	if typeName == "" {
+		typeName = "Generic"
+	}
+	return fmt.Sprintf("<%s  content: %#v, children: %#v>", typeName, g.Content, g.children)
 }
 
 type FactoryFunc func(*Generic) Element

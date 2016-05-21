@@ -7,12 +7,17 @@ import (
 	"github.com/agaffney/crapsh/lang"
 	"io"
 	"strings"
+	//"unicode"
+)
+
+const (
+	MIN_STACK_DEPTH = 0
 )
 
 type Parser struct {
 	Position
 	input      *bufio.Reader
-	stack      []*HintStackEntry
+	stack      []*StackEntry
 	stackdepth int
 }
 
@@ -22,10 +27,11 @@ type Position struct {
 	LineOffset uint
 }
 
-type HintStackEntry struct {
+type StackEntry struct {
 	hint     *lang.ParserHint
 	allowed  []*lang.ParserHint
 	position Position
+	element  lang.Element
 }
 
 func NewParser() *Parser {
@@ -76,69 +82,66 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			// the code below to turn off the 'escape' flag
 			continue
 		} else {
-			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
-				e := lang.NewGeneric(buf.String(), p.Line)
-				fmt.Printf("%#v\n", e)
-				if p.stack[p.stackdepth].hint.Factory != nil {
-					foo := p.stack[p.stackdepth].hint.Factory(e)
-					fmt.Printf("%s\n", foo)
-				} else {
-
-				}
-				if p.stackCur().hint.CaptureAll {
-					// We're using the end token from our "parent", so if it's found,
-					// we should remove the CaptureAll element from the stack
-					p.stackRemove()
-				}
-				p.stackRemove()
-				linebuf.Write(buf.Bytes())
-				buf.Reset()
-			} else {
-				found := false
-				for _, hint := range p.stackCur().allowed {
-					if checkBufForToken(&buf, hint.TokenStart) || hint.CaptureAll {
-						if p.stackCur().hint.CaptureAll {
-							// We're using the allowed elements from our "parent", so if one is found,
-							// we should remove the CaptureAll element from the stack
-							p.stackRemove()
-						}
-						p.stackAdd(hint)
-						if hint.SkipCapture {
-							p.unreadRune()
-						} else {
-							buf.WriteRune(c)
-						}
-						found = true
-						break
-					}
-				}
-				if !found && p.stackCur().hint.CaptureAll {
-					buf.WriteRune(c)
-				} else {
-					// TODO: return an error of some kind
-				}
-			}
-			if c == '\n' {
+			if c == '\n' && !escape {
 				p.nextLine()
 				if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
-					p.stackRemove()
+					p.stackRemove(buf)
 					linebuf.Write(buf.Bytes())
 					buf.Reset()
 					break
 				}
+			}
+			//if unicode.IsSpace(c) && !escape && p.stackCur().hint.EndOnWhitespace {
+			//	p.stackRemove(buf)
+			//	buf.Reset()
+			//	break
+			//}
+			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
+				if p.stackCur().hint.CaptureAll {
+					// We're using the end token from our "parent", so if it's found,
+					// we should remove the CaptureAll element from the stack
+					p.stackRemove(buf)
+				}
+				p.stackRemove(buf)
+				linebuf.Write(buf.Bytes())
+				buf.Reset()
+				break
+			}
+			found := false
+			for _, hint := range p.stackCur().allowed {
+				if checkBufForToken(&buf, hint.TokenStart) || hint.CaptureAll {
+					if p.stackCur().hint.CaptureAll {
+						// We're using the allowed elements from our "parent", so if one is found,
+						// we should remove the CaptureAll element from the stack
+						p.stackRemove(buf)
+					}
+					p.stackAdd(hint)
+					if hint.SkipCapture {
+						p.unreadRune()
+					} else {
+						buf.WriteRune(c)
+					}
+					found = true
+					break
+				}
+			}
+			if !found && p.stackCur().hint.CaptureAll {
+				buf.WriteRune(c)
+			} else {
+				// TODO: return an error of some kind
 			}
 		}
 		// Reset the 'escape' flag
 		escape = false
 	}
 	// Remove any stack items that allow ending on EOF
-	for p.stackdepth >= 0 {
+	for p.stackdepth >= MIN_STACK_DEPTH {
 		if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
-			p.stackRemove()
+			p.stackRemove(buf)
 		}
 	}
 	// Return the buffer if the stack is empty
-	if p.stackdepth < 0 {
+	if p.stackdepth < MIN_STACK_DEPTH {
 		return &linebuf, nil
 	}
 	// Return syntax error if we didn't close all of our containers
@@ -164,9 +167,20 @@ func (p *Parser) nextLine() {
 	p.LineOffset = 0
 }
 
+func (p *Parser) newElement() lang.Element {
+	e := lang.NewGeneric("", p.Line, p.stackCur().hint.Name)
+	//fmt.Printf("%#v\n", e)
+	if p.stack[p.stackdepth].hint.Factory != nil {
+		foo := p.stack[p.stackdepth].hint.Factory(e)
+		//fmt.Printf("%s\n", foo)
+		return foo
+	}
+	return e
+}
+
 func (p *Parser) stackAdd(hint *lang.ParserHint) {
 	if p.stack == nil {
-		p.stack = make([]*HintStackEntry, 0)
+		p.stack = make([]*StackEntry, 0)
 		p.stackdepth = -1
 	}
 	allowed := []*lang.ParserHint{}
@@ -178,39 +192,45 @@ func (p *Parser) stackAdd(hint *lang.ParserHint) {
 				allowed = append(allowed, foo)
 			}
 		}
-		// Use the end token from the parent
+		// Use the end token info from the parent
 		hint.TokenEnd = p.stackCur().hint.TokenEnd
+		hint.EndOnWhitespace = p.stackCur().hint.EndOnWhitespace
 	} else {
 		allowed = lang.GetElementHints(hint.AllowedElements)
 	}
-	e := &HintStackEntry{hint, allowed, p.Position}
+	e := &StackEntry{hint, allowed, p.Position, nil}
 	p.stack = append(p.stack, e)
 	p.stackdepth++
+	e.element = p.newElement()
 	fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, hint)
-	fmt.Printf("  allowed = [\n")
-	for _, foo := range e.allowed {
-		fmt.Printf("    %#v,\n", foo)
-	}
-	fmt.Printf("  ]\n\n")
+	//fmt.Printf("  allowed = [\n")
+	//for _, foo := range e.allowed {
+	//	fmt.Printf("    %#v,\n", foo)
+	//}
+	//fmt.Printf("  ]\n\n")
 }
 
-func (p *Parser) stackRemove() {
+func (p *Parser) stackRemove(buf bytes.Buffer) {
+	p.stackCur().element.SetContent(buf.String())
+	if p.stackdepth > MIN_STACK_DEPTH {
+		p.stackPrev().element.AddChild(p.stackCur().element)
+	}
 	p.stack = p.stack[:len(p.stack)-1]
 	p.stackdepth--
-	if p.stackdepth >= 0 {
+	if p.stackdepth >= MIN_STACK_DEPTH {
 		fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, p.stack[p.stackdepth].hint)
 	}
 }
 
-func (p *Parser) stackCur() *HintStackEntry {
-	if p.stackdepth >= 0 {
+func (p *Parser) stackCur() *StackEntry {
+	if p.stackdepth >= MIN_STACK_DEPTH {
 		return p.stack[p.stackdepth]
 	}
 	return nil
 }
 
-func (p *Parser) stackPrev() *HintStackEntry {
-	if p.stackdepth-1 >= 0 {
+func (p *Parser) stackPrev() *StackEntry {
+	if p.stackdepth-1 >= MIN_STACK_DEPTH {
 		return p.stack[p.stackdepth-1]
 	}
 	return nil
