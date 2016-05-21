@@ -9,7 +9,21 @@ func init() {
 		{
 			Name:            `Line`,
 			TokenEnd:        tokens.NEWLINE,
-			AllowEndOnEOF:   true,
+			EndOnEOF:        true,
+			AllowedElements: []string{"Command"},
+		},
+		{
+			Name:            `Command`,
+			TokenEnd:        tokens.SEMICOLON,
+			EndOnNewline:    true,
+			EndOnEOF:        true,
+			AllowedElements: []string{"Argument"},
+		},
+		{
+			Name:            `Argument`,
+			EndOnWhitespace: true,
+			EndOnNewline:    true,
+			EndOnEOF:        true,
 			AllowedElements: []string{"StringSingle", "StringDouble", "Variable"},
 		},
 	})

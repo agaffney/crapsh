@@ -96,19 +96,27 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			}
 			if c == '\n' {
 				p.nextLine()
+				if stack[stackdepth].hint.EndOnNewline {
+					stack = stack[:len(stack)-1]
+					stackdepth--
+					linebuf.Write(buf.Bytes())
+					buf.Reset()
+					break
+				}
 			}
-		}
-		// Return the buffer if we clear the container stack
-		if stackdepth < 0 {
-			return &linebuf, nil
 		}
 		// Reset the 'escape' flag
 		escape = false
 	}
-	// Return the buffer if we have only one container left and it allows
-	// ending on EOF
-	if stackdepth == 0 && stack[stackdepth].hint.AllowEndOnEOF {
-		linebuf.Write(buf.Bytes())
+	// Remove any stack items that allow ending on EOF
+	for stackdepth >= 0 {
+		if stack[stackdepth].hint.EndOnEOF {
+			stack = stack[:len(stack)-1]
+			stackdepth--
+		}
+	}
+	// Return the buffer if the stack is empty
+	if stackdepth < 0 {
 		return &linebuf, nil
 	}
 	// Return syntax error if we didn't close all of our containers

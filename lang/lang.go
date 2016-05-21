@@ -40,8 +40,11 @@ type ParserHint struct {
 	TokenStart      string
 	TokenEnd        string
 	IgnoreEscapes   bool
-	AllowEndOnEOF   bool
 	SkipEndToken    bool
+	CaptureAll      bool
+	EndOnEOF        bool
+	EndOnWhitespace bool
+	EndOnNewline    bool
 	AllowedElements []string
 	Factory         FactoryFunc
 }
