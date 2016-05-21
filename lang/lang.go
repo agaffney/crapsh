@@ -49,13 +49,17 @@ type ParserHint struct {
 	Factory         FactoryFunc
 }
 
-func GetElementHint(s string) *ParserHint {
-	for _, foo := range ParserHints {
-		if s == foo.Name {
-			return foo
+func GetElementHints(elements []string) []*ParserHint {
+	hints := []*ParserHint{}
+	for _, e := range elements {
+		for _, hint := range ParserHints {
+			if e == hint.Name {
+				hints = append(hints, hint)
+				break
+			}
 		}
 	}
-	return nil
+	return hints
 }
 
 func (h *ParserHint) AllowedElement(s string) bool {

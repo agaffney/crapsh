@@ -11,7 +11,9 @@ import (
 
 type Parser struct {
 	Position
-	input *bufio.Reader
+	input      *bufio.Reader
+	stack      []*HintStackEntry
+	stackdepth int
 }
 
 type Position struct {
@@ -54,8 +56,10 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	var linebuf bytes.Buffer
 	var escape = false
-	var stackdepth int = 0
-	stack := []HintStackEntry{HintStackEntry{lang.GetElementHint("Line"), p.Position}}
+	// Reset the hint stack
+	p.stack = nil
+	p.stack = []*HintStackEntry{&HintStackEntry{lang.GetElementHints([]string{"Line"})[0], p.Position}}
+	p.stackdepth = 0
 	for {
 		c, err := p.nextRune()
 		if err != nil {
@@ -64,31 +68,33 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			}
 			break
 		}
-		//fmt.Printf("Stack item (%d): %#v\n", stackdepth+1, stack[stackdepth])
+		//fmt.Printf("Stack item (%d): %#v\n", p.stackdepth+1, p.stack[p.stackdepth])
 		fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
-		if c == '\\' && !stack[stackdepth].hint.IgnoreEscapes {
+		if c == '\\' && !p.stack[p.stackdepth].hint.IgnoreEscapes {
 			escape = true
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
 			continue
 		} else {
 			buf.WriteRune(c)
-			if escape == false && checkBufForToken(&buf, stack[stackdepth].hint.TokenEnd) {
-				if stack[stackdepth].hint.Factory != nil {
-					foo := stack[stackdepth].hint.Factory(lang.NewGeneric(buf.String(), p.Line))
+			if escape == false && checkBufForToken(&buf, p.stack[p.stackdepth].hint.TokenEnd) {
+				if p.stack[p.stackdepth].hint.Factory != nil {
+					foo := p.stack[p.stackdepth].hint.Factory(lang.NewGeneric(buf.String(), p.Line))
 					fmt.Printf("%s\n", foo)
 				}
-				stack = stack[:len(stack)-1]
-				stackdepth--
+				//p.stack = p.stack[:len(p.stack)-1]
+				//p.stackdepth--
+				p.stackPop()
 				linebuf.Write(buf.Bytes())
 				buf.Reset()
-			} else if stack[stackdepth].hint.AllowedElements != nil {
+			} else if p.stack[p.stackdepth].hint.AllowedElements != nil {
 				for _, cont := range lang.ParserHints {
-					if stack[stackdepth].hint.AllowedElement(cont.Name) {
+					if p.stack[p.stackdepth].hint.AllowedElement(cont.Name) {
 						//fmt.Printf("%#v\n", cont)
 						if checkBufForToken(&buf, cont.TokenStart) {
-							stack = append(stack, HintStackEntry{cont, p.Position})
-							stackdepth++
+							//p.stack = append(p.stack, HintStackEntry{cont, p.Position})
+							//p.stackdepth++
+							p.stackPush(&HintStackEntry{cont, p.Position})
 							break
 						}
 					}
@@ -96,9 +102,10 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 			}
 			if c == '\n' {
 				p.nextLine()
-				if stack[stackdepth].hint.EndOnNewline {
-					stack = stack[:len(stack)-1]
-					stackdepth--
+				if p.stack[p.stackdepth].hint.EndOnNewline {
+					//p.stack = p.stack[:len(p.stack)-1]
+					//p.stackdepth--
+					p.stackPop()
 					linebuf.Write(buf.Bytes())
 					buf.Reset()
 					break
@@ -109,18 +116,19 @@ func (p *Parser) GetNextLine() (*bytes.Buffer, error) {
 		escape = false
 	}
 	// Remove any stack items that allow ending on EOF
-	for stackdepth >= 0 {
-		if stack[stackdepth].hint.EndOnEOF {
-			stack = stack[:len(stack)-1]
-			stackdepth--
+	for p.stackdepth >= 0 {
+		if p.stack[p.stackdepth].hint.EndOnEOF {
+			//p.stack = p.stack[:len(p.stack)-1]
+			//p.stackdepth--
+			p.stackPop()
 		}
 	}
 	// Return the buffer if the stack is empty
-	if stackdepth < 0 {
+	if p.stackdepth < 0 {
 		return &linebuf, nil
 	}
 	// Return syntax error if we didn't close all of our containers
-	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", stack[stackdepth].position.Line, stack[stackdepth].hint.TokenEnd)
+	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", p.stack[p.stackdepth].position.Line, p.stack[p.stackdepth].hint.TokenEnd)
 }
 
 func (p *Parser) nextRune() (rune, error) {
@@ -140,6 +148,23 @@ func (p *Parser) unreadRune() error {
 func (p *Parser) nextLine() {
 	p.Line++
 	p.LineOffset = 0
+}
+
+func (p *Parser) stackPush(e *HintStackEntry) {
+	p.stack = append(p.stack, e)
+	p.stackdepth++
+}
+
+func (p *Parser) stackPop() {
+	p.stack = p.stack[:len(p.stack)-1]
+	p.stackdepth--
+}
+
+func (p *Parser) stackGetLast() *HintStackEntry {
+	if p.stackdepth >= 0 {
+		return p.stack[p.stackdepth]
+	}
+	return nil
 }
 
 // Grab n bytes (length of token) from end of buf and compare to token
