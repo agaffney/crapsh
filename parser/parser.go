@@ -60,9 +60,8 @@ func (p *Parser) Parse(input string) {
 }
 
 func (p *Parser) GetNextLine() (lang.Element, error) {
-	var buf bytes.Buffer
-	var tmpbuf bytes.Buffer
-	var escape = false
+	escape := false
+	buf := bytes.NewBuffer(nil)
 	// Reset the hint stack
 	p.stack = nil
 	p.stackAdd(lang.GetElementHints([]string{"Line"})[0])
@@ -111,12 +110,13 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				continue
 			}
 			// Add new character to tmpbuf for checking start/end tokens
-			tmpbuf.Reset()
-			tmpbuf.Write(buf.Bytes())
-			tmpbuf.WriteRune(c)
-			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(&tmpbuf, p.stack[p.stackdepth].hint.TokenEnd) {
-				// Hack for now to grab end token
-				buf.WriteRune(c)
+			//tmpbuf.Reset()
+			//tmpbuf.Write(buf.Bytes())
+			//tmpbuf.WriteRune(c)
+			buf.WriteRune(c)
+			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(buf, p.stack[p.stackdepth].hint.TokenEnd) {
+				// Remove start token from buf
+				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().hint.TokenEnd)])
 				if p.stackCur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
@@ -131,7 +131,9 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			}
 			found := false
 			for _, hint := range p.stackCur().allowed {
-				if checkBufForToken(&tmpbuf, hint.TokenStart) || hint.CaptureAll {
+				if checkBufForToken(buf, hint.TokenStart) { //|| hint.CaptureAll {
+					// Remove start token from buf
+					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(hint.TokenStart)])
 					if p.stackCur().hint.CaptureAll {
 						// We're using the allowed elements from our "parent", so if one is found,
 						// we should remove the CaptureAll element from the stack
@@ -142,19 +144,14 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 					p.stackAdd(hint)
 					if hint.SkipCapture {
 						p.unreadRune()
-					} else {
-						buf.WriteRune(c)
+						buf.Reset()
 					}
 					found = true
 					break
 				}
 			}
-			if !found {
-				if p.stackCur().hint.CaptureAll {
-					buf.WriteRune(c)
-				} else {
-					return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
-				}
+			if !found && !p.stackCur().hint.CaptureAll {
+				return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
 			}
 		}
 		// Reset the 'escape' flag
@@ -240,7 +237,7 @@ func (p *Parser) stackAdd(hint *lang.ParserHint) {
 	//fmt.Printf("  ]\n\n")
 }
 
-func (p *Parser) stackRemove(buf bytes.Buffer) {
+func (p *Parser) stackRemove(buf *bytes.Buffer) {
 	p.stackCur().element.SetContent(buf.String())
 	if p.stackdepth > MIN_STACK_DEPTH {
 		p.stackPrev().element.AddChild(p.stackCur().element)
