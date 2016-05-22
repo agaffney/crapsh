@@ -37,7 +37,7 @@ func init() {
 			Name:            `StringDouble`,
 			TokenStart:      tokens.DOUBLE_QUOTE,
 			TokenEnd:        tokens.DOUBLE_QUOTE,
-			AllowedElements: []string{"Variable", "Subshell", "Generic"},
+			AllowedElements: []string{"Variable", "SubshellCapture", "Subshell", "SubshellBacktick", "Generic"},
 			Factory:         NewStringDouble,
 		},
 	})

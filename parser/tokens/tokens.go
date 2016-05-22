@@ -10,6 +10,7 @@ const (
 	CURLY_BRACE_CLOSE    = `}`
 	BACKSLASH            = `\`
 	SEMICOLON            = `;`
+	BACKTICK             = "`"
 	SUBSHELL_OPEN        = `$(`
 	VARIABLE_OPEN        = `${`
 	ARITHMETIC_OPEN      = `$((`

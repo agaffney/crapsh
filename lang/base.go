@@ -22,17 +22,11 @@ func init() {
 			Name:            `Argument`,
 			EndOnWhitespace: true,
 			SkipCapture:     true,
-			AllowedElements: []string{"StringSingle", "StringDouble", "DollarSign", "Generic"},
+			AllowedElements: []string{"StringSingle", "StringDouble", "SubshellCapture", "Subshell", "SubshellBacktick", "Generic"},
 		},
 		{
 			Name:       `Generic`,
 			CaptureAll: true,
-		},
-		{
-			Name:            `DollarSign`,
-			TokenStart:      tokens.DOLLAR_SIGN,
-			SkipCapture:     true,
-			AllowedElements: []string{"Variable"},
 		},
 	})
 

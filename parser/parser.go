@@ -29,10 +29,11 @@ type Position struct {
 }
 
 type StackEntry struct {
-	hint     *lang.ParserHint
-	allowed  []*lang.ParserHint
-	position Position
-	element  lang.Element
+	hint           *lang.ParserHint
+	allowed        []*lang.ParserHint
+	position       Position
+	element        lang.Element
+	parentTokenEnd string
 }
 
 func NewParser() *Parser {
@@ -76,8 +77,8 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			}
 			break
 		}
-		//fmt.Printf("Stack item (%d): %#v\n", p.stackdepth+1, p.stack[p.stackdepth])
-		//fmt.Printf("Line %d, offset %d, overall offset %d: %#U, buf: %#v\n", p.Line, p.LineOffset, p.Offset, c, buf.String())
+		//fmt.Printf(">>> Stack item (%d): %#v\n\t%#v\n", p.stackdepth+1, p.stack[p.stackdepth], p.stackCur().hint)
+		//fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
 		if c == '\\' && !p.stack[p.stackdepth].hint.IgnoreEscapes {
 			escape = !escape
 			// Explicitly skip to the next iteration so we don't hit
@@ -111,25 +112,50 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				buf.Reset()
 				continue
 			}
-			// Add new character to tmpbuf for checking start/end tokens
-			//tmpbuf.Reset()
-			//tmpbuf.Write(buf.Bytes())
-			//tmpbuf.WriteRune(c)
+			// Add new character to buf for checking start/end tokens
 			buf.WriteRune(c)
-			if escape == false && p.stackCur().hint.TokenEnd != "" && checkBufForToken(buf, p.stack[p.stackdepth].hint.TokenEnd) {
-				// Remove start token from buf
-				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().hint.TokenEnd)])
-				if p.stackCur().hint.CaptureAll {
-					// We're using the end token from our "parent", so if it's found,
-					// we should remove the CaptureAll element from the stack
+			//fmt.Printf("buf = %#v\n", buf.String())
+			if escape == false {
+				if p.stackCur().hint.TokenEnd != "" && checkBufForToken(buf, p.stack[p.stackdepth].hint.TokenEnd) {
+					// Remove start token from buf
+					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().hint.TokenEnd)])
+					if p.stackCur().hint.CaptureAll {
+						// We're using the end token from our "parent", so if it's found,
+						// we should remove the CaptureAll element from the stack
+						p.stackRemove(buf)
+						//fmt.Println("removing from stack due to CaptureAll and finding end token")
+						buf.Reset()
+					}
 					p.stackRemove(buf)
-					//fmt.Println("removing from stack due to CaptureAll and finding end token")
+					//fmt.Println("removing from stack due to finding end token")
 					buf.Reset()
+					continue
 				}
-				p.stackRemove(buf)
-				//fmt.Println("removing from stack due to finding end token")
-				buf.Reset()
-				continue
+				parentTokenEnd := p.stackCur().parentTokenEnd
+				if p.stackCur().parentTokenEnd != "" && checkBufForToken(buf, p.stackCur().parentTokenEnd) {
+					// Remove start token from buf
+					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().parentTokenEnd)])
+					// TODO: fix to work with a parent token longer than 1 character
+					p.unreadRune()
+					if p.stackCur().hint.CaptureAll {
+						// We're using the end token from our "parent", so if it's found,
+						// we should remove the CaptureAll element from the stack
+						p.stackRemove(buf)
+						//fmt.Println("removing from stack due to CaptureAll and finding end token")
+						buf.Reset()
+					}
+					// Remove items from stack that don't have a required end token
+					for {
+						if p.stackCur().hint.EndTokenOptional || (p.stackCur().parentTokenEnd != "" && p.stackCur().parentTokenEnd == parentTokenEnd) {
+							p.stackRemove(buf)
+							//fmt.Println("removing extra item from stack due to finding end token")
+							buf.Reset()
+						} else {
+							break
+						}
+					}
+					continue
+				}
 			}
 			found := false
 			for _, hint := range p.stackCur().allowed {
@@ -227,11 +253,19 @@ func (p *Parser) stackAdd(hint *lang.ParserHint) {
 	} else {
 		allowed = lang.GetElementHints(hint.AllowedElements)
 	}
-	e := &StackEntry{hint, allowed, p.Position, nil}
+	parentTokenEnd := ""
+	if p.stackdepth > MIN_STACK_DEPTH {
+		if foo := p.stackCur().hint.TokenEnd; foo != "" && !p.stackCur().hint.EndTokenOptional {
+			parentTokenEnd = foo
+		} else {
+			parentTokenEnd = p.stackCur().parentTokenEnd
+		}
+	}
+	e := &StackEntry{hint, allowed, p.Position, nil, parentTokenEnd}
 	p.stack = append(p.stack, e)
 	p.stackdepth++
 	e.element = p.newElement()
-	//fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, hint)
+	//fmt.Printf(">>> stack[%d] = %#v\n\n", p.stackdepth, hint)
 	//fmt.Printf("  allowed = [\n")
 	//for _, foo := range e.allowed {
 	//	fmt.Printf("    %#v,\n", foo)
@@ -267,6 +301,7 @@ func (p *Parser) stackPrev() *StackEntry {
 
 // Grab n bytes (length of token) from end of buf and compare to token
 func checkBufForToken(buf *bytes.Buffer, token string) bool {
+	//fmt.Printf("checkBufForToken('%s', '%s')\n", buf.String(), token)
 	token_len := len(token)
 	if buf.Len() < token_len {
 		return false
