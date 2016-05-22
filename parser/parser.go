@@ -144,7 +144,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 					}
 					// Remove items from stack that don't have a required end token
 					for {
-						if p.stackCur().hint.EndTokenOptional || (p.stackCur().parentTokenEnd != "" && p.stackCur().parentTokenEnd == parentTokenEnd) {
+						if p.stackCur().hint.EndTokenOptional || (p.stackCur().parentTokenEnd != "" && p.stackCur().hint.TokenEnd == "" && p.stackCur().parentTokenEnd == parentTokenEnd) {
 							p.stackRemove(buf)
 							//fmt.Println("removing extra item from stack due to finding end token")
 							buf.Reset()
