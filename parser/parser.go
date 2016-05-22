@@ -132,11 +132,9 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 					continue
 				}
 				parentTokenEnd := p.stackCur().parentTokenEnd
-				if p.stackCur().parentTokenEnd != "" && checkBufForToken(buf, p.stackCur().parentTokenEnd) {
-					// Remove start token from buf
+				if parentTokenEnd != "" && checkBufForToken(buf, parentTokenEnd) {
+					// Remove end token from buf
 					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().parentTokenEnd)])
-					// TODO: fix to work with a parent token longer than 1 character
-					p.unreadRune()
 					if p.stackCur().hint.CaptureAll {
 						// We're using the end token from our "parent", so if it's found,
 						// we should remove the CaptureAll element from the stack
@@ -154,6 +152,10 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 							break
 						}
 					}
+					// Put last character of token back in buffer for re-discovery
+					p.unreadRune()
+					// TODO: fix this for utf-8 end tokens
+					buf = bytes.NewBufferString(parentTokenEnd[:len(parentTokenEnd)-1])
 					continue
 				}
 			}
