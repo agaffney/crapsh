@@ -12,14 +12,13 @@ type Element interface {
 }
 
 type Generic struct {
-	Line     uint
 	Content  string
-	children []Element
-	typeName string
+	Children []Element
+	TypeName string
 }
 
-func NewGeneric(content string, line uint, typeName string) *Generic {
-	return &Generic{Content: content, Line: line, typeName: typeName}
+func NewGeneric(typeName string) *Generic {
+	return &Generic{TypeName: typeName}
 }
 
 func (g *Generic) Output() string {
@@ -27,11 +26,11 @@ func (g *Generic) Output() string {
 }
 
 func (g *Generic) AddChild(e Element) {
-	if g.children == nil {
-		g.children = make([]Element, 0)
+	if g.Children == nil {
+		g.Children = make([]Element, 0)
 	}
-	g.children = append(g.children, e)
-	fmt.Printf("new child: %s\n", e)
+	g.Children = append(g.Children, e)
+	//fmt.Printf("new child: %s\n", e)
 }
 
 func (g *Generic) SetContent(content string) {
@@ -39,15 +38,15 @@ func (g *Generic) SetContent(content string) {
 }
 
 func (g *Generic) NumChildren() int {
-	return len(g.children)
+	return len(g.Children)
 }
 
 func (g *Generic) String() string {
-	typeName := g.typeName
+	typeName := g.TypeName
 	if typeName == "" {
 		typeName = "Generic"
 	}
-	return fmt.Sprintf("<%s  content: %#v, children: %#v>", typeName, g.Content, g.children)
+	return fmt.Sprintf("<%s  content: %#v, children: %#v>", typeName, g.Content, g.Children)
 }
 
 type FactoryFunc func(*Generic) Element

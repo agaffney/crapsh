@@ -3,6 +3,7 @@ package parser
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
 	"io"
@@ -55,7 +56,8 @@ func (p *Parser) Parse(input string) {
 		if line.NumChildren() == 0 {
 			break
 		}
-		fmt.Printf("Line: %s\n", line)
+		//fmt.Printf("Line: %s\n", line)
+		dump_json(line)
 	}
 }
 
@@ -75,7 +77,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			break
 		}
 		//fmt.Printf("Stack item (%d): %#v\n", p.stackdepth+1, p.stack[p.stackdepth])
-		fmt.Printf("Line %d, offset %d, overall offset %d: %#U, buf: %#v\n", p.Line, p.LineOffset, p.Offset, c, buf.String())
+		//fmt.Printf("Line %d, offset %d, overall offset %d: %#U, buf: %#v\n", p.Line, p.LineOffset, p.Offset, c, buf.String())
 		if c == '\\' && !p.stack[p.stackdepth].hint.IgnoreEscapes {
 			escape = !escape
 			// Explicitly skip to the next iteration so we don't hit
@@ -89,7 +91,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				} else {
 					if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
 						p.stackRemove(buf)
-						fmt.Println("removing from stack due to newline")
+						//fmt.Println("removing from stack due to newline")
 						buf.Reset()
 						break
 					}
@@ -101,11 +103,11 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 					// We're using the EndOnWhitespace value from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
 					p.stackRemove(buf)
-					fmt.Println("removing from stack due to CaptureAll and whitespace")
+					//fmt.Println("removing from stack due to CaptureAll and whitespace")
 					buf.Reset()
 				}
 				p.stackRemove(buf)
-				fmt.Println("removing from stack due to whitespace")
+				//fmt.Println("removing from stack due to whitespace")
 				buf.Reset()
 				continue
 			}
@@ -121,11 +123,11 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
 					p.stackRemove(buf)
-					fmt.Println("removing from stack due to CaptureAll and finding end token")
+					//fmt.Println("removing from stack due to CaptureAll and finding end token")
 					buf.Reset()
 				}
 				p.stackRemove(buf)
-				fmt.Println("removing from stack due to finding end token")
+				//fmt.Println("removing from stack due to finding end token")
 				buf.Reset()
 				continue
 			}
@@ -138,7 +140,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 						// We're using the allowed elements from our "parent", so if one is found,
 						// we should remove the CaptureAll element from the stack
 						p.stackRemove(buf)
-						fmt.Println("removing from stack due to CaptureAll and finding start token")
+						//fmt.Println("removing from stack due to CaptureAll and finding start token")
 						buf.Reset()
 					}
 					p.stackAdd(hint)
@@ -162,7 +164,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 		if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
 			p.stackRemove(buf)
 			buf.Reset()
-			fmt.Println("removing from stack due to EOL/EOF")
+			//fmt.Println("removing from stack due to EOL/EOF")
 		} else {
 			break
 		}
@@ -195,7 +197,7 @@ func (p *Parser) nextLine() {
 }
 
 func (p *Parser) newElement() lang.Element {
-	e := lang.NewGeneric("", p.Line, p.stackCur().hint.Name)
+	e := lang.NewGeneric(p.stackCur().hint.Name)
 	//fmt.Printf("%#v\n", e)
 	if p.stack[p.stackdepth].hint.Factory != nil {
 		foo := p.stack[p.stackdepth].hint.Factory(e)
@@ -229,7 +231,7 @@ func (p *Parser) stackAdd(hint *lang.ParserHint) {
 	p.stack = append(p.stack, e)
 	p.stackdepth++
 	e.element = p.newElement()
-	fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, hint)
+	//fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, hint)
 	//fmt.Printf("  allowed = [\n")
 	//for _, foo := range e.allowed {
 	//	fmt.Printf("    %#v,\n", foo)
@@ -245,7 +247,7 @@ func (p *Parser) stackRemove(buf *bytes.Buffer) {
 	p.stack = p.stack[:len(p.stack)-1]
 	p.stackdepth--
 	if p.stackdepth >= MIN_STACK_DEPTH {
-		fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, p.stack[p.stackdepth].hint)
+		//fmt.Printf("\nstack[%d] = %#v\n\n", p.stackdepth, p.stack[p.stackdepth].hint)
 	}
 }
 
@@ -276,4 +278,9 @@ func checkBufForToken(buf *bytes.Buffer, token string) bool {
 		}
 	}
 	return true
+}
+
+func dump_json(v interface{}) {
+	foo, _ := json.MarshalIndent(v, "", "  ")
+	fmt.Printf("%s\n", foo)
 }
