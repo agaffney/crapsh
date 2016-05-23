@@ -95,6 +95,8 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 						//fmt.Println("removing from stack due to newline")
 						buf.Reset()
 						break
+					} else {
+						buf.WriteRune(c)
 					}
 				}
 				continue
