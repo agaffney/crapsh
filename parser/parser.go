@@ -19,6 +19,7 @@ type Parser struct {
 	stack      []*StackEntry
 	stackdepth int
 	LineChan   chan lang.Element
+	Error      error
 }
 
 type Position struct {
@@ -51,7 +52,7 @@ func (p *Parser) Parse(input io.Reader) {
 		for {
 			line, err := p.GetNextLine()
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
+				p.Error = err
 				break
 			}
 			// EOF

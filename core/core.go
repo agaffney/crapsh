@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/agaffney/crapsh/parser"
 	"github.com/agaffney/crapsh/util"
 	"strings"
@@ -20,5 +21,8 @@ func (state *State) Start() {
 	state.parser.Parse(strings.NewReader(state.config.Command))
 	for line := range state.parser.LineChan {
 		util.DumpJson(line)
+	}
+	if state.parser.Error != nil {
+		fmt.Printf("%s: %s\n", state.config.Binary, state.parser.Error)
 	}
 }
