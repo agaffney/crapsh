@@ -3,11 +3,9 @@ package parser
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
 	"io"
-	"strings"
 	"unicode"
 )
 
@@ -20,6 +18,7 @@ type Parser struct {
 	input      *bufio.Reader
 	stack      []*StackEntry
 	stackdepth int
+	LineChan   chan lang.Element
 }
 
 type Position struct {
@@ -38,28 +37,31 @@ type StackEntry struct {
 
 func NewParser() *Parser {
 	parser := &Parser{}
+	parser.LineChan = make(chan lang.Element)
 	return parser
 }
 
-func (p *Parser) Parse(input string) {
-	r := bufio.NewReader(strings.NewReader(input))
+func (p *Parser) Parse(input io.Reader) {
+	r := bufio.NewReader(input)
 	p.input = r
 	p.Line = 1
 	p.LineOffset = 0
 	p.Offset = 0
-	for {
-		line, err := p.GetNextLine()
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-			break
+	go func() {
+		for {
+			line, err := p.GetNextLine()
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				break
+			}
+			// EOF
+			if line.NumChildren() == 0 {
+				break
+			}
+			p.LineChan <- line
 		}
-		// EOF
-		if line.NumChildren() == 0 {
-			break
-		}
-		//fmt.Printf("Line: %s\n", line)
-		dump_json(line)
-	}
+		close(p.LineChan)
+	}()
 }
 
 func (p *Parser) GetNextLine() (lang.Element, error) {
@@ -317,9 +319,4 @@ func checkBufForToken(buf *bytes.Buffer, token string) bool {
 		}
 	}
 	return true
-}
-
-func dump_json(v interface{}) {
-	foo, _ := json.MarshalIndent(v, "", "  ")
-	fmt.Printf("%s\n", foo)
 }

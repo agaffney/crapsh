@@ -2,6 +2,8 @@ package core
 
 import (
 	"github.com/agaffney/crapsh/parser"
+	"github.com/agaffney/crapsh/util"
+	"strings"
 )
 
 type State struct {
@@ -15,5 +17,12 @@ func New(config *Config) *State {
 }
 
 func (state *State) Start() {
-	state.parser.Parse(state.config.Command)
+	state.parser.Parse(strings.NewReader(state.config.Command))
+	for {
+		line, more := <-state.parser.LineChan
+		if !more {
+			break
+		}
+		util.DumpJson(line)
+	}
 }
