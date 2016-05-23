@@ -1,4 +1,4 @@
-package cmd
+package core
 
 type Config struct {
 	Command string
