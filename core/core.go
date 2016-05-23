@@ -18,11 +18,7 @@ func New(config *Config) *State {
 
 func (state *State) Start() {
 	state.parser.Parse(strings.NewReader(state.config.Command))
-	for {
-		line, more := <-state.parser.LineChan
-		if !more {
-			break
-		}
+	for line := range state.parser.LineChan {
 		util.DumpJson(line)
 	}
 }
