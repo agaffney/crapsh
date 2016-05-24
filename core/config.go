@@ -7,4 +7,5 @@ type Config struct {
 	File            string
 	FileProvided    bool
 	Args            []string
+	ReadFromStdin   bool
 }

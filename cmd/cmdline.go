@@ -23,6 +23,7 @@ func (s *StringBool) String() string {
 func parse_cmdline_opts(c *core.Config) {
 	flag_command := &StringBool{}
 	flag.Var(flag_command, "c", "specifies a command to run non-interactively")
+	flag.BoolVar(&c.ReadFromStdin, "s", false, "read commands from STDIN (default if no file provided)")
 	flag.Parse()
 	if flag_command.used {
 		c.Command = flag_command.String()

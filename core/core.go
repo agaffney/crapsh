@@ -21,7 +21,7 @@ func New(config *Config) *State {
 func (state *State) Start() {
 	if state.config.CommandProvided {
 		state.parser.Parse(strings.NewReader(state.config.Command))
-	} else if state.config.FileProvided {
+	} else if state.config.FileProvided && !state.config.ReadFromStdin {
 		file, err := os.Open(state.config.File)
 		if err != nil {
 			fmt.Printf("%s: %s\n", state.config.Binary, err)
