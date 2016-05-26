@@ -89,108 +89,107 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
 			continue
-		} else {
-			if c == '\n' {
-				p.nextLine()
-				if escape {
-					buf.WriteRune(c)
+		}
+		if c == '\n' {
+			p.nextLine()
+			if escape {
+				buf.WriteRune(c)
+			} else {
+				if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
+					p.stackRemove(buf)
+					//fmt.Println("removing from stack due to newline")
+					buf.Reset()
+					break
 				} else {
-					if p.stack[p.stackdepth].hint.TokenEnd == "" || p.stack[p.stackdepth].hint.EndTokenOptional {
-						p.stackRemove(buf)
-						//fmt.Println("removing from stack due to newline")
-						buf.Reset()
-						break
-					} else {
-						buf.WriteRune(c)
-					}
+					buf.WriteRune(c)
 				}
-				continue
 			}
-			if unicode.IsSpace(c) && !escape && p.stackCur().hint.EndOnWhitespace {
+			continue
+		}
+		if unicode.IsSpace(c) && !escape && p.stackCur().hint.EndOnWhitespace {
+			if p.stackCur().hint.CaptureAll {
+				// We're using the EndOnWhitespace value from our "parent", so if it's found,
+				// we should remove the CaptureAll element from the stack
+				p.stackRemove(buf)
+				//fmt.Println("removing from stack due to CaptureAll and whitespace")
+				buf.Reset()
+			}
+			p.stackRemove(buf)
+			//fmt.Println("removing from stack due to whitespace")
+			buf.Reset()
+			continue
+		}
+		// Add new character to buf for checking start/end tokens
+		buf.WriteRune(c)
+		//fmt.Printf("buf = %#v\n", buf.String())
+		if escape == false {
+			if checkBufForToken(buf, p.stack[p.stackdepth].hint.TokenEnd) {
+				// Remove start token from buf
+				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().hint.TokenEnd)])
 				if p.stackCur().hint.CaptureAll {
-					// We're using the EndOnWhitespace value from our "parent", so if it's found,
+					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
 					p.stackRemove(buf)
-					//fmt.Println("removing from stack due to CaptureAll and whitespace")
+					//fmt.Println("removing from stack due to CaptureAll and finding end token")
 					buf.Reset()
 				}
 				p.stackRemove(buf)
-				//fmt.Println("removing from stack due to whitespace")
+				//fmt.Println("removing from stack due to finding end token")
 				buf.Reset()
 				continue
 			}
-			// Add new character to buf for checking start/end tokens
-			buf.WriteRune(c)
-			//fmt.Printf("buf = %#v\n", buf.String())
-			if escape == false {
-				if p.stackCur().hint.TokenEnd != "" && checkBufForToken(buf, p.stack[p.stackdepth].hint.TokenEnd) {
-					// Remove start token from buf
-					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().hint.TokenEnd)])
-					if p.stackCur().hint.CaptureAll {
-						// We're using the end token from our "parent", so if it's found,
-						// we should remove the CaptureAll element from the stack
-						p.stackRemove(buf)
-						//fmt.Println("removing from stack due to CaptureAll and finding end token")
-						buf.Reset()
-					}
+			parentTokenEnd := p.stackCur().parentTokenEnd
+			if checkBufForToken(buf, parentTokenEnd) {
+				// Remove end token from buf
+				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().parentTokenEnd)])
+				if p.stackCur().hint.CaptureAll {
+					// We're using the end token from our "parent", so if it's found,
+					// we should remove the CaptureAll element from the stack
 					p.stackRemove(buf)
-					//fmt.Println("removing from stack due to finding end token")
+					//fmt.Println("removing from stack due to CaptureAll and finding end token")
 					buf.Reset()
-					continue
 				}
-				parentTokenEnd := p.stackCur().parentTokenEnd
-				if parentTokenEnd != "" && checkBufForToken(buf, parentTokenEnd) {
-					// Remove end token from buf
-					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().parentTokenEnd)])
-					if p.stackCur().hint.CaptureAll {
-						// We're using the end token from our "parent", so if it's found,
-						// we should remove the CaptureAll element from the stack
+				// Remove items from stack that don't have a required end token
+				for {
+					if p.stackCur().hint.EndTokenOptional || (p.stackCur().parentTokenEnd != "" && p.stackCur().hint.TokenEnd == "" && p.stackCur().parentTokenEnd == parentTokenEnd) {
 						p.stackRemove(buf)
-						//fmt.Println("removing from stack due to CaptureAll and finding end token")
+						//fmt.Println("removing extra item from stack due to finding end token")
 						buf.Reset()
+					} else {
+						break
 					}
-					// Remove items from stack that don't have a required end token
-					for {
-						if p.stackCur().hint.EndTokenOptional || (p.stackCur().parentTokenEnd != "" && p.stackCur().hint.TokenEnd == "" && p.stackCur().parentTokenEnd == parentTokenEnd) {
-							p.stackRemove(buf)
-							//fmt.Println("removing extra item from stack due to finding end token")
-							buf.Reset()
-						} else {
-							break
-						}
-					}
-					// Put last character of token back in buffer for re-discovery
+				}
+				// Put last character of token back in buffer for re-discovery
+				p.unreadRune()
+				// TODO: fix this for utf-8 end tokens
+				buf = bytes.NewBufferString(parentTokenEnd[:len(parentTokenEnd)-1])
+				continue
+			}
+		}
+		found := false
+		for _, hint := range p.stackCur().allowed {
+			if hint.SkipCapture || checkBufForToken(buf, hint.TokenStart) || hint.CaptureAll {
+				// Remove start token from buf
+				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(hint.TokenStart)])
+				if p.stackCur().hint.CaptureAll {
+					// We're using the allowed elements from our "parent", so if one is found,
+					// we should remove the CaptureAll element from the stack
+					p.stackRemove(buf)
+					//fmt.Println("removing from stack due to CaptureAll and finding start token")
+					buf.Reset()
+				}
+				p.stackAdd(hint)
+				if hint.SkipCapture {
 					p.unreadRune()
-					// TODO: fix this for utf-8 end tokens
-					buf = bytes.NewBufferString(parentTokenEnd[:len(parentTokenEnd)-1])
-					continue
+					// Remove last rune from buffer
+					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-utf8.RuneLen(c)])
 				}
+				found = true
+				break
 			}
-			found := false
-			for _, hint := range p.stackCur().allowed {
-				if hint.SkipCapture || (hint.TokenStart != "" && checkBufForToken(buf, hint.TokenStart)) || hint.CaptureAll {
-					// Remove start token from buf
-					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(hint.TokenStart)])
-					if p.stackCur().hint.CaptureAll {
-						// We're using the allowed elements from our "parent", so if one is found,
-						// we should remove the CaptureAll element from the stack
-						p.stackRemove(buf)
-						//fmt.Println("removing from stack due to CaptureAll and finding start token")
-						buf.Reset()
-					}
-					p.stackAdd(hint)
-					if hint.SkipCapture {
-						p.unreadRune()
-						// Remove last rune from buffer
-						buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-utf8.RuneLen(c)])
-					}
-					found = true
-					break
-				}
-			}
-			if !found && !p.stackCur().hint.CaptureAll {
-				return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
-			}
+		}
+		if !found && !p.stackCur().hint.CaptureAll {
+			return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
 		}
 		// Reset the 'escape' flag
 		escape = false
@@ -313,6 +312,9 @@ func (p *Parser) stackPrev() *StackEntry {
 func checkBufForToken(buf *bytes.Buffer, token string) bool {
 	//fmt.Printf("checkBufForToken('%s', '%s')\n", buf.String(), token)
 	token_len := len(token)
+	if token_len == 0 {
+		return false
+	}
 	buf_len := buf.Len()
 	if buf_len < token_len {
 		return false
