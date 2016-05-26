@@ -7,6 +7,7 @@ import (
 	"github.com/agaffney/crapsh/lang"
 	"io"
 	"unicode"
+	"unicode/utf8"
 )
 
 const (
@@ -84,6 +85,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 		//fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
 		if c == '\\' && !p.stack[p.stackdepth].hint.IgnoreEscapes {
 			escape = !escape
+			buf.WriteRune(c)
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
 			continue
@@ -166,7 +168,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			}
 			found := false
 			for _, hint := range p.stackCur().allowed {
-				if checkBufForToken(buf, hint.TokenStart) { //|| hint.CaptureAll {
+				if hint.SkipCapture || (hint.TokenStart != "" && checkBufForToken(buf, hint.TokenStart)) || hint.CaptureAll {
 					// Remove start token from buf
 					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(hint.TokenStart)])
 					if p.stackCur().hint.CaptureAll {
@@ -179,7 +181,8 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 					p.stackAdd(hint)
 					if hint.SkipCapture {
 						p.unreadRune()
-						buf.Reset()
+						// Remove last rune from buffer
+						buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-utf8.RuneLen(c)])
 					}
 					found = true
 					break
@@ -310,14 +313,33 @@ func (p *Parser) stackPrev() *StackEntry {
 func checkBufForToken(buf *bytes.Buffer, token string) bool {
 	//fmt.Printf("checkBufForToken('%s', '%s')\n", buf.String(), token)
 	token_len := len(token)
-	if buf.Len() < token_len {
+	buf_len := buf.Len()
+	if buf_len < token_len {
 		return false
 	}
+	//fmt.Printf("buf_len = %d, token_len = %d\n", buf_len, token_len)
 	buf_bytes := buf.Bytes()[buf.Len()-token_len:]
 	for i, b := range []byte(token) {
 		if buf_bytes[i] != b {
 			return false
 		}
+	}
+	// Look backwards through the buffer to see if the beginning of our
+	// token was escaped
+	escape := false
+	buf_bytes = buf.Bytes()
+	for i := (buf_len - token_len - 1); i >= 0; i-- {
+		//fmt.Printf("buf is '%s', char at %d is '%c'\n", buf_bytes, i, buf_bytes[i])
+		if buf_bytes[i] == '\\' {
+			//fmt.Printf("flipping 'escape' from %t to %t\n", escape, !escape)
+			escape = !escape
+		} else {
+			break
+		}
+	}
+	//fmt.Printf("'escape' is %t\n", escape)
+	if escape {
+		return false
 	}
 	return true
 }
