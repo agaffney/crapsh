@@ -16,13 +16,13 @@ func init() {
 			TokenEnd:         tokens.SEMICOLON,
 			EndTokenOptional: true,
 			SkipCapture:      true,
-			AllowedElements:  []string{"Argument"},
+			AllowedElements:  []string{"Subshell", "Argument"},
 		},
 		{
 			Name:            `Argument`,
 			EndOnWhitespace: true,
 			SkipCapture:     true,
-			AllowedElements: []string{"StringSingle", "StringDouble", "SubshellCapture", "Subshell", "SubshellBacktick", "Generic"},
+			AllowedElements: []string{"StringSingle", "StringDouble", "SubshellCapture", "SubshellBacktick", "Generic"},
 		},
 		{
 			Name:       `Generic`,
