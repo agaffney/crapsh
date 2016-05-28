@@ -2,7 +2,6 @@ package parser
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
 	"io"
@@ -68,7 +67,7 @@ func (p *Parser) Parse(input io.Reader) {
 
 func (p *Parser) GetNextLine() (lang.Element, error) {
 	escape := false
-	buf := bytes.NewBuffer(nil)
+	buf := NewBuffer(nil)
 	// Reset the hint stack
 	p.stack = nil
 	p.stackAdd(lang.GetElementHints([]string{"Line"})[0])
@@ -123,9 +122,9 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 		buf.WriteRune(c)
 		//fmt.Printf("buf = %#v\n", buf.String())
 		if escape == false {
-			if checkBufForToken(buf, p.stack[p.stackdepth].hint.TokenEnd) {
+			if buf.checkForToken(p.stack[p.stackdepth].hint.TokenEnd) {
 				// Remove start token from buf
-				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().hint.TokenEnd)])
+				buf.removeBytes(len(p.stackCur().hint.TokenEnd))
 				if p.stackCur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
@@ -139,9 +138,9 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				continue
 			}
 			parentTokenEnd := p.stackCur().parentTokenEnd
-			if checkBufForToken(buf, parentTokenEnd) {
+			if buf.checkForToken(parentTokenEnd) {
 				// Remove end token from buf
-				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(p.stackCur().parentTokenEnd)])
+				buf.removeBytes(len(p.stackCur().parentTokenEnd))
 				if p.stackCur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
@@ -161,16 +160,15 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				}
 				// Put last character of token back in buffer for re-discovery
 				p.unreadRune()
-				// TODO: fix this for utf-8 end tokens
-				buf = bytes.NewBufferString(parentTokenEnd[:len(parentTokenEnd)-1])
+				buf.removeBytes(utf8.RuneLen(c))
 				continue
 			}
 		}
 		found := false
 		for _, hint := range p.stackCur().allowed {
-			if hint.SkipCapture || checkBufForToken(buf, hint.TokenStart) || hint.CaptureAll {
+			if hint.SkipCapture || buf.checkForToken(hint.TokenStart) || hint.CaptureAll {
 				// Remove start token from buf
-				buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-len(hint.TokenStart)])
+				buf.removeBytes(len(hint.TokenStart))
 				if p.stackCur().hint.CaptureAll {
 					// We're using the allowed elements from our "parent", so if one is found,
 					// we should remove the CaptureAll element from the stack
@@ -182,7 +180,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 				if hint.SkipCapture {
 					p.unreadRune()
 					// Remove last rune from buffer
-					buf = bytes.NewBuffer(buf.Bytes()[:buf.Len()-utf8.RuneLen(c)])
+					buf.removeBytes(utf8.RuneLen(c))
 				}
 				found = true
 				break
@@ -282,7 +280,7 @@ func (p *Parser) stackAdd(hint *lang.ParserHint) {
 	//fmt.Printf("  ]\n\n")
 }
 
-func (p *Parser) stackRemove(buf *bytes.Buffer) {
+func (p *Parser) stackRemove(buf *Buffer) {
 	p.stackCur().element.SetContent(buf.String())
 	if p.stackdepth > MIN_STACK_DEPTH {
 		p.stackPrev().element.AddChild(p.stackCur().element)
@@ -306,42 +304,4 @@ func (p *Parser) stackPrev() *StackEntry {
 		return p.stack[p.stackdepth-1]
 	}
 	return nil
-}
-
-// Grab n bytes (length of token) from end of buf and compare to token
-func checkBufForToken(buf *bytes.Buffer, token string) bool {
-	//fmt.Printf("checkBufForToken('%s', '%s')\n", buf.String(), token)
-	token_len := len(token)
-	if token_len == 0 {
-		return false
-	}
-	buf_len := buf.Len()
-	if buf_len < token_len {
-		return false
-	}
-	//fmt.Printf("buf_len = %d, token_len = %d\n", buf_len, token_len)
-	buf_bytes := buf.Bytes()[buf.Len()-token_len:]
-	for i, b := range []byte(token) {
-		if buf_bytes[i] != b {
-			return false
-		}
-	}
-	// Look backwards through the buffer to see if the beginning of our
-	// token was escaped
-	escape := false
-	buf_bytes = buf.Bytes()
-	for i := (buf_len - token_len - 1); i >= 0; i-- {
-		//fmt.Printf("buf is '%s', char at %d is '%c'\n", buf_bytes, i, buf_bytes[i])
-		if buf_bytes[i] == '\\' {
-			//fmt.Printf("flipping 'escape' from %t to %t\n", escape, !escape)
-			escape = !escape
-		} else {
-			break
-		}
-	}
-	//fmt.Printf("'escape' is %t\n", escape)
-	if escape {
-		return false
-	}
-	return true
 }
