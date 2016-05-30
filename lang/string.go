@@ -1,7 +1,7 @@
 package lang
 
 import (
-	"github.com/agaffney/crapsh/parser/tokens"
+	"github.com/agaffney/crapsh/lang/tokens"
 )
 
 const (
