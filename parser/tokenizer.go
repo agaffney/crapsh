@@ -20,7 +20,7 @@ func (p *Parser) nextToken() (*Token, error) {
 		if buf_len > 0 {
 			for _, foo := range tokens.Tokens {
 				if idx, length := foo.Match(p.buf.Buffer); idx > -1 {
-					fmt.Printf("idx=%d, length=%d, data='%s'\n", idx, length, p.buf.Bytes()[idx:idx+length])
+					//fmt.Printf("idx=%d, length=%d, data='%s'\n", idx, length, p.buf.Bytes()[idx:idx+length])
 					if length == buf_len && foo.MatchUntilNextToken {
 						break
 					}

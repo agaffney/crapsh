@@ -75,6 +75,9 @@ func (t *Token) Match(buf *bytes.Buffer) (int, int) {
 	case t.Type == TYPE_REGEXP:
 		foo := regexp.MustCompile(t.Pattern)
 		match := foo.FindIndex(buf.Bytes())
+		if match == nil {
+			return -1, 0
+		}
 		return match[0], match[1] - match[0]
 	case t.Type == TYPE_MATCHALL:
 		return 0, buf.Len()
@@ -114,6 +117,11 @@ func registerTokens(tokens []*Token) {
 
 func init() {
 	registerTokens([]*Token{
+		{
+			Name:    `Escape`,
+			Type:    TYPE_REGEXP,
+			Pattern: `\\.`,
+		},
 		{
 			Name:    `Newline`,
 			Pattern: "\n",
