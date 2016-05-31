@@ -17,6 +17,7 @@ type Parser struct {
 	Position
 	input    *bufio.Reader
 	stack    *Stack
+	buf      *Buffer
 	LineChan chan lang.Element
 	Error    error
 }
@@ -31,6 +32,7 @@ func NewParser() *Parser {
 	parser := &Parser{}
 	parser.LineChan = make(chan lang.Element)
 	parser.stack = &Stack{parser: parser}
+	parser.buf = NewBuffer(nil)
 	return parser
 }
 
@@ -42,24 +44,28 @@ func (p *Parser) Parse(input io.Reader) {
 	p.Offset = 0
 	go func() {
 		for {
-			line, err := p.GetNextLine()
+			//line, err := p.GetNextLine()
+			token, err := p.nextToken()
 			if err != nil {
 				p.Error = err
 				break
 			}
-			// EOF
-			if line.NumChildren() == 0 {
+			if token == nil {
 				break
 			}
-			p.LineChan <- line
+			fmt.Printf("Token: %#v\n", token)
+			// EOF
+			//if line.NumChildren() == 0 {
+			//	break
+			//}
+			//p.LineChan <- line
 		}
-		close(p.LineChan)
+		//close(p.LineChan)
 	}()
 }
 
 func (p *Parser) GetNextLine() (lang.Element, error) {
 	escape := false
-	buf := NewBuffer(nil)
 	// Reset the hint stack
 	p.stack.Reset()
 	p.stack.Add(lang.GetElementHints([]string{"Line"})[0])
@@ -76,7 +82,7 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 		//fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
 		if c == '\\' && !p.stack.Cur().hint.IgnoreEscapes {
 			escape = !escape
-			buf.WriteRune(c)
+			p.buf.WriteRune(c)
 			// Explicitly skip to the next iteration so we don't hit
 			// the code below to turn off the 'escape' flag
 			continue
@@ -84,15 +90,15 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 		if c == '\n' {
 			p.nextLine()
 			if escape {
-				buf.WriteRune(c)
+				p.buf.WriteRune(c)
 			} else {
 				if p.stack.Cur().hint.TokenEnd == "" || p.stack.Cur().hint.EndTokenOptional {
-					p.stack.Remove(buf)
+					p.stack.Remove(p.buf)
 					//fmt.Println("removing from stack due to newline")
-					buf.Reset()
+					p.buf.Reset()
 					break
 				} else {
-					buf.WriteRune(c)
+					p.buf.WriteRune(c)
 				}
 			}
 			continue
@@ -101,78 +107,78 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 			if p.stack.Cur().hint.CaptureAll {
 				// We're using the EndOnWhitespace value from our "parent", so if it's found,
 				// we should remove the CaptureAll element from the stack
-				p.stack.Remove(buf)
+				p.stack.Remove(p.buf)
 				//fmt.Println("removing from stack due to CaptureAll and whitespace")
-				buf.Reset()
+				p.buf.Reset()
 			}
-			p.stack.Remove(buf)
+			p.stack.Remove(p.buf)
 			//fmt.Println("removing from stack due to whitespace")
-			buf.Reset()
+			p.buf.Reset()
 			continue
 		}
 		// Add new character to buf for checking start/end tokens
-		buf.WriteRune(c)
+		p.buf.WriteRune(c)
 		//fmt.Printf("buf = %#v\n", buf.String())
 		if escape == false {
-			if buf.checkForToken(p.stack.Cur().hint.TokenEnd) {
+			if p.buf.checkForToken(p.stack.Cur().hint.TokenEnd) {
 				// Remove start token from buf
-				buf.removeBytes(len(p.stack.Cur().hint.TokenEnd))
+				p.buf.removeBytes(len(p.stack.Cur().hint.TokenEnd))
 				if p.stack.Cur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
-					p.stack.Remove(buf)
+					p.stack.Remove(p.buf)
 					//fmt.Println("removing from stack due to CaptureAll and finding end token")
-					buf.Reset()
+					p.buf.Reset()
 				}
-				p.stack.Remove(buf)
+				p.stack.Remove(p.buf)
 				//fmt.Println("removing from stack due to finding end token")
-				buf.Reset()
+				p.buf.Reset()
 				continue
 			}
 			parentTokenEnd := p.stack.Cur().parentTokenEnd
-			if buf.checkForToken(parentTokenEnd) {
+			if p.buf.checkForToken(parentTokenEnd) {
 				// Remove end token from buf
-				buf.removeBytes(len(p.stack.Cur().parentTokenEnd))
+				p.buf.removeBytes(len(p.stack.Cur().parentTokenEnd))
 				if p.stack.Cur().hint.CaptureAll {
 					// We're using the end token from our "parent", so if it's found,
 					// we should remove the CaptureAll element from the stack
-					p.stack.Remove(buf)
+					p.stack.Remove(p.buf)
 					//fmt.Println("removing from stack due to CaptureAll and finding end token")
-					buf.Reset()
+					p.buf.Reset()
 				}
 				// Remove items from stack that don't have a required end token
 				for {
 					if p.stack.Cur().hint.EndTokenOptional || (p.stack.Cur().parentTokenEnd != "" && p.stack.Cur().hint.TokenEnd == "" && p.stack.Cur().parentTokenEnd == parentTokenEnd) {
-						p.stack.Remove(buf)
+						p.stack.Remove(p.buf)
 						//fmt.Println("removing extra item from stack due to finding end token")
-						buf.Reset()
+						p.buf.Reset()
 					} else {
 						break
 					}
 				}
 				// Put last character of token back in buffer for re-discovery
 				p.unreadRune()
-				buf.removeBytes(utf8.RuneLen(c))
+				p.buf.removeBytes(utf8.RuneLen(c))
 				continue
 			}
 		}
 		found := false
 		for _, hint := range p.stack.Cur().allowed {
-			if hint.SkipCapture || buf.checkForToken(hint.TokenStart) || hint.CaptureAll {
+			if hint.SkipCapture || p.buf.checkForToken(hint.TokenStart) || hint.CaptureAll {
 				// Remove start token from buf
-				buf.removeBytes(len(hint.TokenStart))
+				p.buf.removeBytes(len(hint.TokenStart))
 				if p.stack.Cur().hint.CaptureAll {
 					// We're using the allowed elements from our "parent", so if one is found,
 					// we should remove the CaptureAll element from the stack
-					p.stack.Remove(buf)
+					p.stack.Remove(p.buf)
 					//fmt.Println("removing from stack due to CaptureAll and finding start token")
-					buf.Reset()
+					p.buf.Reset()
 				}
 				p.stack.Add(hint)
 				if hint.SkipCapture {
 					p.unreadRune()
 					// Remove last rune from buffer
-					buf.removeBytes(utf8.RuneLen(c))
+					p.buf.removeBytes(utf8.RuneLen(c))
 				}
 				found = true
 				break
@@ -187,8 +193,8 @@ func (p *Parser) GetNextLine() (lang.Element, error) {
 	// Remove any stack items that allow ending on EOF
 	for p.stack.depth >= MIN_STACK_DEPTH {
 		if p.stack.Cur().hint.TokenEnd == "" || p.stack.Cur().hint.EndTokenOptional {
-			p.stack.Remove(buf)
-			buf.Reset()
+			p.stack.Remove(p.buf)
+			p.buf.Reset()
 			//fmt.Println("removing from stack due to EOL/EOF")
 		} else {
 			break
