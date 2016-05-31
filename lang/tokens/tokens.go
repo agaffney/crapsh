@@ -103,12 +103,12 @@ func registerTokens(tokens []*Token) {
 func init() {
 	registerTokens([]*Token{
 		{
-			Name: `Whitespace`,
-			Type: TYPE_WHITESPACE,
-		},
-		{
 			Name:    `Newline`,
 			Pattern: "\n",
+		},
+		{
+			Name: `Whitespace`,
+			Type: TYPE_WHITESPACE,
 		},
 		{
 			Name:    `Dollar`,
@@ -129,6 +129,22 @@ func init() {
 		{
 			Name:    `ParenClose`,
 			Pattern: `)`,
+		},
+		{
+			Name:    `CurlyBraceOpen`,
+			Pattern: `{`,
+		},
+		{
+			Name:    `CurlyBraceClose`,
+			Pattern: `}`,
+		},
+		{
+			Name:    `SquareBracketOpen`,
+			Pattern: `[`,
+		},
+		{
+			Name:    `SquareBracketClose`,
+			Pattern: `]`,
 		},
 	})
 }
