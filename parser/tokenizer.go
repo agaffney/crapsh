@@ -24,7 +24,7 @@ func (p *Parser) nextToken() (*Token, error) {
 						p.buf.Reset()
 					} else {
 						// Return data up to token as "generic" token and remove from buffer
-						token = &Token{Type: `Generic`, Value: string(p.buf.Bytes()[0 : idx-1])}
+						token = &Token{Type: `Generic`, Value: string(p.buf.Bytes()[0:idx])}
 						p.buf = NewBuffer(p.buf.Bytes()[idx:])
 					}
 					return token, nil

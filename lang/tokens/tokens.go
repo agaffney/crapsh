@@ -3,6 +3,7 @@ package tokens
 import (
 	"bytes"
 	"regexp"
+	"unicode"
 )
 
 const (
@@ -37,7 +38,8 @@ const (
 )
 
 const (
-	TYPE_SIMPLE = 0
+	TYPE_SIMPLE = iota
+	TYPE_WHITESPACE
 	TYPE_REGEXP
 	TYPE_CALLBACK
 	TYPE_MATCHALL
@@ -74,6 +76,13 @@ func (t *Token) Match(buf *bytes.Buffer) int {
 		return match[0]
 	case t.Type == TYPE_MATCHALL:
 		return 0
+	case t.Type == TYPE_WHITESPACE:
+		for idx, c := range buf.String() {
+			if unicode.IsSpace(c) {
+				return idx
+			}
+		}
+		return -1
 		//case TYPE_CALLBACK:
 
 	}
@@ -94,6 +103,14 @@ func registerTokens(tokens []*Token) {
 func init() {
 	registerTokens([]*Token{
 		{
+			Name: `Whitespace`,
+			Type: TYPE_WHITESPACE,
+		},
+		{
+			Name:    `Newline`,
+			Pattern: "\n",
+		},
+		{
 			Name:    `Dollar`,
 			Pattern: `$`,
 		},
@@ -106,8 +123,12 @@ func init() {
 			Pattern: `"`,
 		},
 		{
-			Name: `Generic`,
-			Type: TYPE_MATCHALL,
+			Name:    `ParenOpen`,
+			Pattern: `(`,
+		},
+		{
+			Name:    `ParenClose`,
+			Pattern: `)`,
 		},
 	})
 }
