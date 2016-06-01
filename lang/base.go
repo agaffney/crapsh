@@ -1,32 +1,81 @@
 package lang
 
-import (
-	"github.com/agaffney/crapsh/lang/tokens"
-)
-
 func init() {
-	registerParserHints([]*ParserHint{
+	registerElements([]*ElementEntry{
 		{
-			Name:            `Line`,
-			SkipCapture:     true,
-			AllowedElements: []string{"Command"},
+			Name: `Line`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_ELEMENT,
+					Name: `Command`,
+					Many: true,
+				},
+			},
 		},
 		{
-			Name:             `Command`,
-			TokenEnd:         tokens.SEMICOLON,
-			EndTokenOptional: true,
-			SkipCapture:      true,
-			AllowedElements:  []string{"Subshell", "Argument"},
+			Name: `Command`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_ANY,
+					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `Subshell`,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `Argument`,
+							Many: true,
+						},
+					},
+				},
+				{
+					Type:     HINT_TYPE_TOKEN,
+					Name:     `Semicolon`,
+					Optional: true,
+				},
+			},
 		},
 		{
-			Name:            `Argument`,
-			EndOnWhitespace: true,
-			SkipCapture:     true,
-			AllowedElements: []string{"StringSingle", "StringDouble", "SubshellCapture", "SubshellBacktick", "Generic"},
+			Name: `Argument`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_ANY,
+					Many: true,
+					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `StringSingle`,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `StringDouble`,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `SubshellCapture`,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `Generic`,
+						},
+					},
+				},
+				{
+					Type:     HINT_TYPE_TOKEN,
+					Name:     `Whitespace`,
+					Optional: true,
+				},
+			},
 		},
 		{
-			Name:       `Generic`,
-			CaptureAll: true,
+			Name: `Generic`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `Generic`,
+				},
+			},
 		},
 	})
 

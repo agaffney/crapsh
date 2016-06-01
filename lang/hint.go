@@ -1,44 +1,17 @@
 package lang
 
-type FactoryFunc func(*Generic) Element
+const (
+	HINT_TYPE_NODE = iota
+	HINT_TYPE_ELEMENT
+	HINT_TYPE_TOKEN
+	HINT_TYPE_GROUP
+	HINT_TYPE_ANY
+)
 
 type ParserHint struct {
-	Name             string
-	TokenStart       string
-	TokenEnd         string
-	IgnoreEscapes    bool
-	EndOnWhitespace  bool
-	EndTokenOptional bool
-	SkipCapture      bool
-	CaptureAll       bool
-	AllowedElements  []string
-	Factory          FactoryFunc
-}
-
-func GetElementHints(elements []string) []*ParserHint {
-	hints := []*ParserHint{}
-	for _, e := range elements {
-		for _, hint := range ParserHints {
-			if e == hint.Name {
-				hints = append(hints, hint)
-				break
-			}
-		}
-	}
-	return hints
-}
-
-func (h *ParserHint) AllowedElement(s string) bool {
-	for _, foo := range h.AllowedElements {
-		if s == foo {
-			return true
-		}
-	}
-	return false
-}
-
-var ParserHints []*ParserHint
-
-func registerParserHints(hints []*ParserHint) {
-	ParserHints = append(ParserHints, hints...)
+	Name     string
+	Type     int
+	Optional bool
+	Many     bool
+	Members  []*ParserHint
 }

@@ -1,9 +1,5 @@
 package lang
 
-import (
-	"github.com/agaffney/crapsh/lang/tokens"
-)
-
 const (
 	STRING_TYPE_INVALID int = iota
 	STRING_TYPE_SINGLE
@@ -24,21 +20,43 @@ func NewStringDouble(base *Generic) Element {
 }
 
 func init() {
-	registerParserHints([]*ParserHint{
+	registerElements([]*ElementEntry{
 		{
-			Name:            `StringSingle`,
-			TokenStart:      tokens.SINGLE_QUOTE,
-			TokenEnd:        tokens.SINGLE_QUOTE,
-			IgnoreEscapes:   true,
-			AllowedElements: []string{"Generic"},
-			Factory:         NewStringSingle,
+			Name: `StringSingle`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `SingleQuote`,
+				},
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `Generic`,
+				},
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `SingleQuote`,
+				},
+			},
+			Factory: NewStringSingle,
 		},
 		{
-			Name:            `StringDouble`,
-			TokenStart:      tokens.DOUBLE_QUOTE,
-			TokenEnd:        tokens.DOUBLE_QUOTE,
-			AllowedElements: []string{"Variable", "SubshellCapture", "Subshell", "SubshellBacktick", "Generic"},
-			Factory:         NewStringDouble,
+			Name: `StringDouble`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `DoubleQuote`,
+				},
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `Generic`,
+				},
+				{
+					Type: HINT_TYPE_TOKEN,
+					Name: `DoubleQuote`,
+				},
+			},
+			//AllowedElements: []string{"Variable", "SubshellCapture", "Subshell", "SubshellBacktick", "Generic"},
+			Factory: NewStringDouble,
 		},
 	})
 }
