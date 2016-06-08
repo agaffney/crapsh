@@ -2,16 +2,12 @@ package parser
 
 import (
 	"bufio"
-	"fmt"
+	//"fmt"
 	"github.com/agaffney/crapsh/lang"
 	"github.com/agaffney/crapsh/util"
 	"io"
 	//"unicode"
 	//"unicode/utf8"
-)
-
-const (
-	MIN_STACK_DEPTH = 0
 )
 
 type Parser struct {
@@ -63,6 +59,10 @@ func (p *Parser) Parse(input io.Reader) {
 }
 
 func (p *Parser) scanTokens() (lang.Element, error) {
+	// Reset the hint stack
+	p.stack.Reset()
+	p.stack.Add(lang.GetElementEntry("Line"))
+	//line_element := p.stack.Cur().element
 	for {
 		token, err := p.nextToken()
 		if err != nil {
@@ -71,7 +71,7 @@ func (p *Parser) scanTokens() (lang.Element, error) {
 		if token == nil {
 			return nil, nil
 		}
-		fmt.Printf("Token: %#v\n", token)
+		//fmt.Printf("Token: %#v\n", token)
 		p.tokenBuf = append(p.tokenBuf, token)
 		util.DumpJson(p.tokenBuf)
 	}

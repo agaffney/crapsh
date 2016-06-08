@@ -8,17 +8,13 @@ type ElementEntry struct {
 	Factory    FactoryFunc
 }
 
-func GetElements(elements []string) []*ElementEntry {
-	ret := []*ElementEntry{}
-	for _, e := range elements {
-		for _, element := range Elements {
-			if e == element.Name {
-				ret = append(ret, element)
-				break
-			}
+func GetElementEntry(element string) *ElementEntry {
+	for _, e := range Elements {
+		if e.Name == element {
+			return e
 		}
 	}
-	return ret
+	return nil
 }
 
 var Elements []*ElementEntry
