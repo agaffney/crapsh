@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
+	"github.com/agaffney/crapsh/util"
 	"io"
 	//"unicode"
 	//"unicode/utf8"
@@ -18,6 +19,7 @@ type Parser struct {
 	input    *bufio.Reader
 	stack    *Stack
 	buf      *Buffer
+	tokenBuf []*Token
 	LineChan chan lang.Element
 	Error    error
 }
@@ -42,26 +44,37 @@ func (p *Parser) Parse(input io.Reader) {
 	p.Line = 1
 	p.LineOffset = 0
 	p.Offset = 0
+	p.tokenBuf = make([]*Token, 0)
 	go func() {
 		for {
-			//line, err := p.GetNextLine()
-			token, err := p.nextToken()
+			line, err := p.scanTokens()
 			if err != nil {
 				p.Error = err
 				break
 			}
-			if token == nil {
+			// EOF
+			if line == nil || line.NumChildren() == 0 {
 				break
 			}
-			fmt.Printf("Token: %#v\n", token)
-			// EOF
-			//if line.NumChildren() == 0 {
-			//	break
-			//}
-			//p.LineChan <- line
+			p.LineChan <- line
 		}
-		//close(p.LineChan)
+		close(p.LineChan)
 	}()
+}
+
+func (p *Parser) scanTokens() (lang.Element, error) {
+	for {
+		token, err := p.nextToken()
+		if err != nil {
+			return nil, err
+		}
+		if token == nil {
+			return nil, nil
+		}
+		fmt.Printf("Token: %#v\n", token)
+		p.tokenBuf = append(p.tokenBuf, token)
+		util.DumpJson(p.tokenBuf)
+	}
 }
 
 //func (p *Parser) GetNextLine() (lang.Element, error) {

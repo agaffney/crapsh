@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/agaffney/crapsh/lang/tokens"
 	"io"
 )
@@ -42,7 +42,7 @@ func (p *Parser) nextToken() (*Token, error) {
 			}
 		}
 		c, err := p.nextRune()
-		fmt.Printf("Line %d, offset %d: %#U\n", p.Position.Line, p.Position.LineOffset, c)
+		//fmt.Printf("Line %d, offset %d: %#U\n", p.Position.Line, p.Position.LineOffset, c)
 		if err != nil {
 			if err != io.EOF {
 				return nil, err
