@@ -24,13 +24,11 @@ type StackEntry struct {
 
 func (stack *Stack) Reset() {
 	stack.entries = nil
+	stack.entries = make([]*StackEntry, 0)
+	stack.depth = -1
 }
 
 func (stack *Stack) Add(entry *lang.ElementEntry) {
-	if stack.entries == nil {
-		stack.entries = make([]*StackEntry, 0)
-		stack.depth = -1
-	}
 	//	allowed := []*lang.ParserHint{}
 	//	if hint.CaptureAll {
 	//		// If the current stack entry captures all, we need to use the allowed

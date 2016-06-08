@@ -51,6 +51,7 @@ type Token struct {
 	Name                string
 	Pattern             string
 	MatchUntilNextToken bool
+	AdvanceLine         bool
 }
 
 func (t *Token) Match(buf *bytes.Buffer) (int, int) {
@@ -123,8 +124,9 @@ func init() {
 			Pattern: `\\.`,
 		},
 		{
-			Name:    `Newline`,
-			Pattern: "\n",
+			Name:        `Newline`,
+			Pattern:     "\n",
+			AdvanceLine: true,
 		},
 		{
 			Name:                `Whitespace`,

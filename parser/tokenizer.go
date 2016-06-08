@@ -9,6 +9,7 @@ import (
 type Token struct {
 	Type  string
 	Value string
+	Pos   Position
 }
 
 func (p *Parser) nextToken() (*Token, error) {
@@ -27,14 +28,17 @@ func (p *Parser) nextToken() (*Token, error) {
 					var token *Token
 					if idx > 0 {
 						// Return data up to token as "generic" token and remove from buffer
-						token = &Token{Type: `Generic`, Value: string(p.buf.Bytes()[0:idx])}
+						token = &Token{Type: `Generic`, Value: string(p.buf.Bytes()[0:idx]), Pos: p.Position}
 						p.buf = NewBuffer(p.buf.Bytes()[idx:])
 					} else {
-						token = &Token{Type: foo.Name, Value: string(p.buf.Bytes()[idx : idx+length])}
+						token = &Token{Type: foo.Name, Value: string(p.buf.Bytes()[idx : idx+length]), Pos: p.Position}
 						if length == p.buf.Len() {
 							p.buf.Reset()
 						} else {
 							p.buf = NewBuffer(p.buf.Bytes()[idx+length:])
+						}
+						if foo.AdvanceLine {
+							p.nextLine()
 						}
 					}
 					return token, nil

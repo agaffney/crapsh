@@ -2,9 +2,9 @@ package parser
 
 import (
 	"bufio"
-	//"fmt"
+	"fmt"
 	"github.com/agaffney/crapsh/lang"
-	"github.com/agaffney/crapsh/util"
+	//"github.com/agaffney/crapsh/util"
 	"io"
 	//"unicode"
 	//"unicode/utf8"
@@ -71,9 +71,9 @@ func (p *Parser) scanTokens() (lang.Element, error) {
 		if token == nil {
 			return nil, nil
 		}
-		//fmt.Printf("Token: %#v\n", token)
+		fmt.Printf("Token: %#v\n", token)
 		p.tokenBuf = append(p.tokenBuf, token)
-		util.DumpJson(p.tokenBuf)
+		//util.DumpJson(p.tokenBuf)
 	}
 }
 
