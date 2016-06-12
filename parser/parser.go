@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
-	//"github.com/agaffney/crapsh/util"
+	"github.com/agaffney/crapsh/util"
 	"io"
 	//"unicode"
 	//"unicode/utf8"
@@ -16,6 +16,7 @@ type Parser struct {
 	stack    *Stack
 	buf      *Buffer
 	tokenBuf []*Token
+	tokenIdx int
 	LineChan chan lang.Element
 	Error    error
 }
@@ -41,9 +42,11 @@ func (p *Parser) Parse(input io.Reader) {
 	p.LineOffset = 0
 	p.Offset = 0
 	p.tokenBuf = make([]*Token, 0)
+	p.tokenIdx = -1
 	go func() {
 		for {
-			line, err := p.scanTokens()
+			//line, err := p.scanTokens()
+			line, err := p.parseElement("Line")
 			if err != nil {
 				p.Error = err
 				break
@@ -58,11 +61,79 @@ func (p *Parser) Parse(input io.Reader) {
 	}()
 }
 
+func (p *Parser) parseHandleHint(hint *lang.ParserHint) (lang.Element, error) {
+	//util.DumpObject(hint, "parseHandleHint() hint=")
+	switch {
+	case hint.Type == lang.HINT_TYPE_ELEMENT:
+		return p.parseElement(hint.Name)
+	case hint.Type == lang.HINT_TYPE_ANY:
+		return p.parseAny(hint.Members)
+	case hint.Type == lang.HINT_TYPE_GROUP:
+		return p.parseGroup(hint.Members)
+	case hint.Type == lang.HINT_TYPE_TOKEN:
+		return p.parseToken(hint)
+	}
+	fmt.Printf("Unhandled hint type: %d\n", hint.Type)
+	return nil, nil
+}
+
+func (p *Parser) parseToken(hint *lang.ParserHint) (lang.Element, error) {
+	token, err := p.nextToken()
+	if err != nil {
+		return nil, err
+	}
+	if token == nil {
+		return nil, nil
+	}
+	util.DumpObject(token, "parseToken() token=")
+	p.tokenBuf = append(p.tokenBuf, token)
+	p.tokenIdx++
+	foo := p.curToken()
+	if hint.Name == foo.Type {
+		return nil, nil
+	}
+	return nil, nil
+}
+
+func (p *Parser) parseGroup(hints []*lang.ParserHint) (lang.Element, error) {
+	for _, hint := range hints {
+		util.DumpObject(hint, "parseGroup(): hint = ")
+		_, err := p.parseHandleHint(hint)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
+func (p *Parser) parseElement(element string) (lang.Element, error) {
+	util.DumpObject(element, "parseElement() element=")
+	e := lang.GetElementEntry(element)
+	if e == nil {
+		return nil, nil
+	}
+	return p.parseGroup(e.ParserData)
+}
+
+func (p *Parser) parseAny(hints []*lang.ParserHint) (lang.Element, error) {
+	for _, hint := range hints {
+		util.DumpObject(hint, "parseAny(): hint = ")
+		foo, err := p.parseHandleHint(hint)
+		if err != nil {
+			return nil, err
+		}
+		if foo != nil {
+			return foo, nil
+		}
+	}
+	return nil, nil
+}
+
 func (p *Parser) scanTokens() (lang.Element, error) {
 	// Reset the hint stack
 	p.stack.Reset()
 	p.stack.Add(lang.GetElementEntry("Line"))
-	//line_element := p.stack.Cur().element
+	line_element := p.stack.Cur().element
 	for {
 		token, err := p.nextToken()
 		if err != nil {
@@ -73,8 +144,21 @@ func (p *Parser) scanTokens() (lang.Element, error) {
 		}
 		fmt.Printf("Token: %#v\n", token)
 		p.tokenBuf = append(p.tokenBuf, token)
-		//util.DumpJson(p.tokenBuf)
+		util.DumpJson(p.tokenBuf, "scanTokens() tokenBuf=")
 	}
+	return line_element, nil
+}
+
+func (p *Parser) getTokenIdx() int {
+	return p.tokenIdx
+}
+
+func (p *Parser) setTokenIdx(idx int) {
+	p.tokenIdx = idx
+}
+
+func (p *Parser) curToken() *Token {
+	return p.tokenBuf[p.tokenIdx]
 }
 
 //func (p *Parser) GetNextLine() (lang.Element, error) {

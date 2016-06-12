@@ -32,7 +32,7 @@ func (state *State) Start() {
 		// Code to show prompt
 	}
 	for line := range state.parser.LineChan {
-		util.DumpJson(line)
+		util.DumpJson(line, "Line: ")
 	}
 	if state.parser.Error != nil {
 		fmt.Printf("%s: %s\n", state.config.Binary, state.parser.Error)

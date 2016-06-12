@@ -116,6 +116,15 @@ func registerTokens(tokens []*Token) {
 	}
 }
 
+func GetToken(name string) *Token {
+	for _, t := range Tokens {
+		if t.Name == name {
+			return t
+		}
+	}
+	return nil
+}
+
 func init() {
 	registerTokens([]*Token{
 		{

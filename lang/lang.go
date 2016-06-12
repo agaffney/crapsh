@@ -19,10 +19,9 @@ func GetElementEntry(element string) *ElementEntry {
 
 var Elements []*ElementEntry
 
-func init() {
-	Elements = make([]*ElementEntry, 0)
-}
-
 func registerElements(elements []*ElementEntry) {
+	if Elements == nil {
+		Elements = make([]*ElementEntry, 0)
+	}
 	Elements = append(Elements, elements...)
 }
