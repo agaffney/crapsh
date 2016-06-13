@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"github.com/agaffney/crapsh/lang/tokens"
+	//"github.com/agaffney/crapsh/util"
 	"io"
 )
 
@@ -12,7 +13,42 @@ type Token struct {
 	Pos   Position
 }
 
-func (p *Parser) nextToken() (*Token, error) {
+func (p *Parser) getTokenIdx() int {
+	return p.tokenIdx
+}
+
+func (p *Parser) setTokenIdx(idx int) {
+	p.tokenIdx = idx
+}
+
+func (p *Parser) curToken() *Token {
+	return p.tokenBuf[p.tokenIdx]
+}
+
+func (p *Parser) prevToken() {
+	if p.tokenIdx > 0 {
+		p.tokenIdx--
+	}
+}
+
+func (p *Parser) nextToken() error {
+	if p.tokenIdx < len(p.tokenBuf)-1 {
+		p.tokenIdx++
+	} else {
+		token, err := p.readToken()
+		if err != nil {
+			return err
+		}
+		if token == nil {
+			return nil
+		}
+		p.tokenBuf = append(p.tokenBuf, token)
+		p.tokenIdx++
+	}
+	return nil
+}
+
+func (p *Parser) readToken() (*Token, error) {
 	var buf_len int
 	for {
 		// Check the buffer at the beginning to catch tokens already in the buffer

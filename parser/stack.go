@@ -57,7 +57,7 @@ func (stack *Stack) Add(entry *lang.ElementEntry) {
 	stack.entries = append(stack.entries, e)
 	stack.depth++
 	//e.element = stack.parser.newElement()
-	fmt.Printf(">>> stack[%d] = %#v\n\n", stack.depth, entry)
+	fmt.Printf("\n>>> stack[%d] = %#v\n\n", stack.depth, entry)
 	//fmt.Printf("  allowed = [\n")
 	//for _, foo := range e.allowed {
 	//	fmt.Printf("    %#v,\n", foo)
@@ -73,7 +73,7 @@ func (stack *Stack) Remove() {
 	stack.entries = stack.entries[:len(stack.entries)-1]
 	stack.depth--
 	if stack.depth >= MIN_STACK_DEPTH {
-		fmt.Printf("\nstack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].entry)
+		fmt.Printf("\n<<< stack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].entry)
 	}
 }
 

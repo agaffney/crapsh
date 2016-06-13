@@ -63,10 +63,11 @@ func (p *Parser) Parse(input io.Reader) {
 }
 
 func (p *Parser) parseHandleHint(hint *lang.ParserHint) (lang.Element, error) {
-	//util.DumpObject(hint, "parseHandleHint() hint=")
+	//util.DumpObject(hint, "parseHandleHint(): hint = ")
 	var foo lang.Element
 	var err error
 	var count int
+	origTokenIdx := p.getTokenIdx()
 	for {
 		switch {
 		case hint.Type == lang.HINT_TYPE_ELEMENT:
@@ -90,6 +91,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (lang.Element, error) {
 			if hint.Many && count > 0 {
 				return nil, nil
 			}
+			p.setTokenIdx(origTokenIdx)
 			return nil, nil
 		}
 		p.stack.Prev().element.AddChild(foo)
@@ -102,16 +104,8 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (lang.Element, error) {
 }
 
 func (p *Parser) parseToken(hint *lang.ParserHint) (lang.Element, error) {
-	token, err := p.nextToken()
-	if err != nil {
-		return nil, err
-	}
-	if token == nil {
-		return nil, nil
-	}
-	util.DumpObject(token, "parseToken() token=")
-	p.tokenBuf = append(p.tokenBuf, token)
-	p.tokenIdx++
+	p.nextToken()
+	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
 	foo := p.curToken()
 	if hint.Name == foo.Type {
 		e := lang.NewGeneric(p.stack.Cur().entry.Name)
@@ -133,11 +127,11 @@ func (p *Parser) parseGroup(hints []*lang.ParserHint) (lang.Element, error) {
 }
 
 func (p *Parser) parseElement(element string) (lang.Element, error) {
-	util.DumpObject(element, "parseElement() element=")
 	entry := lang.GetElementEntry(element)
 	if entry == nil {
 		return nil, nil
 	}
+	util.DumpObject(entry, "parseElement(): entry = ")
 	p.stack.Add(entry)
 	e := lang.NewGeneric(p.stack.Cur().entry.Name)
 	//fmt.Printf("%#v\n", e)
@@ -167,38 +161,6 @@ func (p *Parser) parseAny(hints []*lang.ParserHint) (lang.Element, error) {
 		}
 	}
 	return nil, nil
-}
-
-func (p *Parser) scanTokens() (lang.Element, error) {
-	// Reset the hint stack
-	p.stack.Reset()
-	p.stack.Add(lang.GetElementEntry("Line"))
-	line_element := p.stack.Cur().element
-	for {
-		token, err := p.nextToken()
-		if err != nil {
-			return nil, err
-		}
-		if token == nil {
-			return nil, nil
-		}
-		fmt.Printf("Token: %#v\n", token)
-		p.tokenBuf = append(p.tokenBuf, token)
-		util.DumpJson(p.tokenBuf, "scanTokens() tokenBuf=")
-	}
-	return line_element, nil
-}
-
-func (p *Parser) getTokenIdx() int {
-	return p.tokenIdx
-}
-
-func (p *Parser) setTokenIdx(idx int) {
-	p.tokenIdx = idx
-}
-
-func (p *Parser) curToken() *Token {
-	return p.tokenBuf[p.tokenIdx]
 }
 
 //func (p *Parser) GetNextLine() (lang.Element, error) {
