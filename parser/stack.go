@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/agaffney/crapsh/lang"
 )
 
@@ -56,25 +57,25 @@ func (stack *Stack) Add(entry *lang.ElementEntry) {
 	stack.entries = append(stack.entries, e)
 	stack.depth++
 	//e.element = stack.parser.newElement()
-	//	//fmt.Printf(">>> stack[%d] = %#v\n\n", stack.depth, hint)
-	//	//fmt.Printf("  allowed = [\n")
-	//	//for _, foo := range e.allowed {
-	//	//	fmt.Printf("    %#v,\n", foo)
-	//	//}
-	//	//fmt.Printf("  ]\n\n")
+	fmt.Printf(">>> stack[%d] = %#v\n\n", stack.depth, entry)
+	//fmt.Printf("  allowed = [\n")
+	//for _, foo := range e.allowed {
+	//	fmt.Printf("    %#v,\n", foo)
+	//}
+	//fmt.Printf("  ]\n\n")
 }
 
-//func (stack *Stack) Remove(buf *Buffer) {
-//	stack.Cur().element.SetContent(buf.String())
-//	if stack.depth > MIN_STACK_DEPTH {
-//		stack.Prev().element.AddChild(stack.Cur().element)
-//	}
-//	stack.entries = stack.entries[:len(stack.entries)-1]
-//	stack.depth--
-//	if stack.depth >= MIN_STACK_DEPTH {
-//		//fmt.Printf("\nstack[%d] = %#v\n\n", stack.depth, p.stack[stack.depth].hint)
-//	}
-//}
+func (stack *Stack) Remove() {
+	//stack.Cur().element.SetContent(buf.String())
+	//if stack.depth > MIN_STACK_DEPTH {
+	//	stack.Prev().element.AddChild(stack.Cur().element)
+	//}
+	stack.entries = stack.entries[:len(stack.entries)-1]
+	stack.depth--
+	if stack.depth >= MIN_STACK_DEPTH {
+		fmt.Printf("\nstack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].entry)
+	}
+}
 
 func (stack *Stack) Cur() *StackEntry {
 	if stack.depth >= MIN_STACK_DEPTH {

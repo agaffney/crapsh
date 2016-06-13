@@ -30,7 +30,7 @@ func (g *Generic) AddChild(e Element) {
 		g.Children = make([]Element, 0)
 	}
 	g.Children = append(g.Children, e)
-	//fmt.Printf("new child: %s\n", e)
+	fmt.Printf("new child: %#v\n", e)
 }
 
 func (g *Generic) SetContent(content string) {

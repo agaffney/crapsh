@@ -6,8 +6,6 @@ import (
 	"github.com/agaffney/crapsh/lang"
 	"github.com/agaffney/crapsh/util"
 	"io"
-	//"unicode"
-	//"unicode/utf8"
 )
 
 type Parser struct {
@@ -45,8 +43,11 @@ func (p *Parser) Parse(input io.Reader) {
 	p.tokenIdx = -1
 	go func() {
 		for {
+			// Reset the hint stack
+			p.stack.Reset()
 			//line, err := p.scanTokens()
 			line, err := p.parseElement("Line")
+			util.DumpJson(line, "Line: ")
 			if err != nil {
 				p.Error = err
 				break
@@ -63,17 +64,40 @@ func (p *Parser) Parse(input io.Reader) {
 
 func (p *Parser) parseHandleHint(hint *lang.ParserHint) (lang.Element, error) {
 	//util.DumpObject(hint, "parseHandleHint() hint=")
-	switch {
-	case hint.Type == lang.HINT_TYPE_ELEMENT:
-		return p.parseElement(hint.Name)
-	case hint.Type == lang.HINT_TYPE_ANY:
-		return p.parseAny(hint.Members)
-	case hint.Type == lang.HINT_TYPE_GROUP:
-		return p.parseGroup(hint.Members)
-	case hint.Type == lang.HINT_TYPE_TOKEN:
-		return p.parseToken(hint)
+	var foo lang.Element
+	var err error
+	var count int
+	for {
+		switch {
+		case hint.Type == lang.HINT_TYPE_ELEMENT:
+			foo, err = p.parseElement(hint.Name)
+		case hint.Type == lang.HINT_TYPE_ANY:
+			foo, err = p.parseAny(hint.Members)
+		case hint.Type == lang.HINT_TYPE_GROUP:
+			foo, err = p.parseGroup(hint.Members)
+		case hint.Type == lang.HINT_TYPE_TOKEN:
+			foo, err = p.parseToken(hint)
+		default:
+			return nil, fmt.Errorf("Unhandled hint type: %d\n", hint.Type)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if foo == nil {
+			if hint.Optional {
+				return nil, nil
+			}
+			if hint.Many && count > 0 {
+				return nil, nil
+			}
+			return nil, nil
+		}
+		p.stack.Prev().element.AddChild(foo)
+		if !hint.Many {
+			break
+		}
+		count++
 	}
-	fmt.Printf("Unhandled hint type: %d\n", hint.Type)
 	return nil, nil
 }
 
@@ -90,7 +114,9 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (lang.Element, error) {
 	p.tokenIdx++
 	foo := p.curToken()
 	if hint.Name == foo.Type {
-		return nil, nil
+		e := lang.NewGeneric(p.stack.Cur().entry.Name)
+		e.Content = foo.Value
+		return e, nil
 	}
 	return nil, nil
 }
@@ -108,11 +134,25 @@ func (p *Parser) parseGroup(hints []*lang.ParserHint) (lang.Element, error) {
 
 func (p *Parser) parseElement(element string) (lang.Element, error) {
 	util.DumpObject(element, "parseElement() element=")
-	e := lang.GetElementEntry(element)
-	if e == nil {
+	entry := lang.GetElementEntry(element)
+	if entry == nil {
 		return nil, nil
 	}
-	return p.parseGroup(e.ParserData)
+	p.stack.Add(entry)
+	e := lang.NewGeneric(p.stack.Cur().entry.Name)
+	//fmt.Printf("%#v\n", e)
+	if p.stack.Cur().entry.Factory != nil {
+		foo := p.stack.Cur().entry.Factory(e)
+		//fmt.Printf("%s\n", foo)
+		p.stack.Cur().element = foo
+	}
+	p.stack.Cur().element = e
+	_, err := p.parseGroup(entry.ParserData)
+	if err != nil {
+		return nil, err
+	}
+	p.stack.Remove()
+	return nil, nil
 }
 
 func (p *Parser) parseAny(hints []*lang.ParserHint) (lang.Element, error) {
