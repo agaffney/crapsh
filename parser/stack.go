@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
+	"github.com/agaffney/crapsh/util"
 )
 
 const (
@@ -70,6 +71,7 @@ func (stack *Stack) Remove() {
 	//if stack.depth > MIN_STACK_DEPTH {
 	//	stack.Prev().element.AddChild(stack.Cur().element)
 	//}
+	util.DumpJson(stack.entries[stack.depth].element, "\nremoving element: ")
 	stack.entries = stack.entries[:len(stack.entries)-1]
 	stack.depth--
 	if stack.depth >= MIN_STACK_DEPTH {

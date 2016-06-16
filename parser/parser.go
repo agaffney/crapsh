@@ -46,94 +46,100 @@ func (p *Parser) Parse(input io.Reader) {
 			// Reset the hint stack
 			p.stack.Reset()
 			//line, err := p.scanTokens()
-			line, err := p.parseElement("Line")
-			util.DumpJson(line, "Line: ")
+			ok, err := p.parseElement("Line")
+			//util.DumpJson(line, "Line: ")
 			if err != nil {
 				p.Error = err
 				break
 			}
 			// EOF
-			if line == nil || line.NumChildren() == 0 {
+			if !ok {
 				break
 			}
-			p.LineChan <- line
+			//p.LineChan <- line
 		}
 		close(p.LineChan)
 	}()
 }
 
-func (p *Parser) parseHandleHint(hint *lang.ParserHint) (lang.Element, error) {
+func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 	//util.DumpObject(hint, "parseHandleHint(): hint = ")
-	var foo lang.Element
 	var err error
 	var count int
+	var ok bool
 	origTokenIdx := p.getTokenIdx()
 	for {
+		ok = false
 		switch {
 		case hint.Type == lang.HINT_TYPE_ELEMENT:
-			foo, err = p.parseElement(hint.Name)
+			ok, err = p.parseElement(hint.Name)
 		case hint.Type == lang.HINT_TYPE_ANY:
-			foo, err = p.parseAny(hint.Members)
+			ok, err = p.parseAny(hint.Members)
 		case hint.Type == lang.HINT_TYPE_GROUP:
-			foo, err = p.parseGroup(hint.Members)
+			ok, err = p.parseGroup(hint.Members)
 		case hint.Type == lang.HINT_TYPE_TOKEN:
-			foo, err = p.parseToken(hint)
+			ok, err = p.parseToken(hint)
 		default:
-			return nil, fmt.Errorf("Unhandled hint type: %d\n", hint.Type)
+			return ok, fmt.Errorf("Unhandled hint type: %d\n", hint.Type)
 		}
+		util.DumpObject(ok, "parseHandleHint(): ok = ")
 		if err != nil {
-			return nil, err
+			return ok, err
 		}
-		if foo == nil {
+		if !ok {
 			if hint.Optional {
-				return nil, nil
+				return true, nil
 			}
 			if hint.Many && count > 0 {
-				return nil, nil
+				return true, nil
 			}
 			p.setTokenIdx(origTokenIdx)
-			return nil, nil
+			return false, nil
 		}
-		p.stack.Prev().element.AddChild(foo)
 		if !hint.Many {
 			break
 		}
 		count++
 	}
-	return nil, nil
+	return true, nil
 }
 
-func (p *Parser) parseToken(hint *lang.ParserHint) (lang.Element, error) {
+func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 	p.nextToken()
+	util.DumpObject(hint, "parseToken(): hint = ")
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
 	foo := p.curToken()
 	if hint.Name == foo.Type {
-		e := lang.NewGeneric(p.stack.Cur().entry.Name)
+		e := lang.NewGeneric(`Token`)
 		e.Content = foo.Value
-		return e, nil
+		p.stack.Cur().element.AddChild(e)
+		return true, nil
 	}
-	return nil, nil
+	return false, nil
 }
 
-func (p *Parser) parseGroup(hints []*lang.ParserHint) (lang.Element, error) {
+func (p *Parser) parseGroup(hints []*lang.ParserHint) (bool, error) {
 	for _, hint := range hints {
 		util.DumpObject(hint, "parseGroup(): hint = ")
-		_, err := p.parseHandleHint(hint)
+		ok, err := p.parseHandleHint(hint)
 		if err != nil {
-			return nil, err
+			return ok, err
+		}
+		if !ok {
+			return ok, nil
 		}
 	}
-	return nil, nil
+	return true, nil
 }
 
-func (p *Parser) parseElement(element string) (lang.Element, error) {
+func (p *Parser) parseElement(element string) (bool, error) {
 	entry := lang.GetElementEntry(element)
 	if entry == nil {
-		return nil, nil
+		return false, nil
 	}
 	util.DumpObject(entry, "parseElement(): entry = ")
 	p.stack.Add(entry)
-	e := lang.NewGeneric(p.stack.Cur().entry.Name)
+	e := lang.NewGeneric(entry.Name)
 	//fmt.Printf("%#v\n", e)
 	if p.stack.Cur().entry.Factory != nil {
 		foo := p.stack.Cur().entry.Factory(e)
@@ -141,26 +147,29 @@ func (p *Parser) parseElement(element string) (lang.Element, error) {
 		p.stack.Cur().element = foo
 	}
 	p.stack.Cur().element = e
-	_, err := p.parseGroup(entry.ParserData)
+	ok, err := p.parseGroup(entry.ParserData)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	p.stack.Remove()
-	return nil, nil
+	if ok && p.stack.Cur() != nil {
+		p.stack.Cur().element.AddChild(e)
+	}
+	return ok, nil
 }
 
-func (p *Parser) parseAny(hints []*lang.ParserHint) (lang.Element, error) {
+func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 	for _, hint := range hints {
 		util.DumpObject(hint, "parseAny(): hint = ")
-		foo, err := p.parseHandleHint(hint)
+		ok, err := p.parseHandleHint(hint)
 		if err != nil {
-			return nil, err
+			return ok, err
 		}
-		if foo != nil {
-			return foo, nil
+		if ok {
+			return ok, nil
 		}
 	}
-	return nil, nil
+	return false, nil
 }
 
 //func (p *Parser) GetNextLine() (lang.Element, error) {
