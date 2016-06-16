@@ -10,6 +10,11 @@ func init() {
 					Name: `Command`,
 					Many: true,
 				},
+				{
+					Type:     HINT_TYPE_TOKEN,
+					Name:     `Newline`,
+					Optional: true,
+				},
 			},
 		},
 		{
