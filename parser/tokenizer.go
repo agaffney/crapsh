@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/agaffney/crapsh/lang/tokens"
 	//"github.com/agaffney/crapsh/util"
-	"io"
+	//"io"
 )
 
 type Token struct {
@@ -87,9 +87,9 @@ func (p *Parser) readToken() (*Token, error) {
 		c, err := p.nextRune()
 		fmt.Printf("Line %d, offset %d: %#U\n", p.Position.Line, p.Position.LineOffset, c)
 		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
+			//if err != io.EOF {
+			return nil, err
+			//}
 			break
 		}
 		p.buf.WriteRune(c)

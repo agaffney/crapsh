@@ -78,7 +78,7 @@ func init() {
 			ParserData: []*ParserHint{
 				{
 					Type: HINT_TYPE_TOKEN,
-					Name: `Generic`,
+					//Name: `Generic`,
 				},
 			},
 		},

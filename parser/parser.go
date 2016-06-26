@@ -77,7 +77,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 		case hint.Type == lang.HINT_TYPE_ANY:
 			ok, err = p.parseAny(hint.Members)
 		case hint.Type == lang.HINT_TYPE_GROUP:
-			ok, err = p.parseGroup(hint.Members)
+			ok, err = p.parseGroup(hint.Members, false)
 		case hint.Type == lang.HINT_TYPE_TOKEN:
 			ok, err = p.parseToken(hint)
 		default:
@@ -106,11 +106,16 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 }
 
 func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
-	p.nextToken()
+	if err := p.nextToken(); err != nil {
+		if err == io.EOF {
+			return false, nil
+		}
+		return false, err
+	}
 	util.DumpObject(hint, "parseToken(): hint = ")
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
 	foo := p.curToken()
-	if hint.Name == foo.Type {
+	if hint.Name == `` || hint.Name == foo.Type {
 		e := lang.NewGeneric(`Token`)
 		e.Content = foo.Value
 		p.stack.Cur().element.AddChild(e)
@@ -119,9 +124,12 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 	return false, nil
 }
 
-func (p *Parser) parseGroup(hints []*lang.ParserHint) (bool, error) {
-	for _, hint := range hints {
+func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool, error) {
+	for idx, hint := range hints {
 		//util.DumpObject(hint, "parseGroup(): hint = ")
+		if updateHintIdx {
+			p.stack.Cur().hintIdx = idx
+		}
 		ok, err := p.parseHandleHint(hint)
 		if err != nil {
 			return ok, err
@@ -134,9 +142,19 @@ func (p *Parser) parseGroup(hints []*lang.ParserHint) (bool, error) {
 }
 
 func (p *Parser) parseElement(element string) (bool, error) {
+	var parentEndToken *lang.ParserHint
 	entry := lang.GetElementEntry(element)
 	if entry == nil {
 		return false, nil
+	}
+	// Check next hint for current stack entry to set as the parentEndToken
+	// on the new stack entry
+	if p.stack.Cur() != nil {
+		if nextHint := p.stack.Cur().NextHint(); nextHint != nil {
+			if nextHint.Type == lang.HINT_TYPE_TOKEN {
+				parentEndToken = nextHint
+			}
+		}
 	}
 	//util.DumpObject(entry, "parseElement(): entry = ")
 	p.stack.Add(entry)
@@ -147,8 +165,9 @@ func (p *Parser) parseElement(element string) (bool, error) {
 		//fmt.Printf("%s\n", foo)
 		p.stack.Cur().element = foo
 	}
+	p.stack.Cur().parentEndToken = parentEndToken
 	p.stack.Cur().element = e
-	ok, err := p.parseGroup(entry.ParserData)
+	ok, err := p.parseGroup(entry.ParserData, true)
 	if err != nil {
 		return false, err
 	}

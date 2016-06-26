@@ -23,6 +23,7 @@ type StackEntry struct {
 	position       Position
 	element        lang.Element
 	parentEndToken *lang.ParserHint
+	hintIdx        int
 }
 
 func (stack *Stack) Reset() {
@@ -90,6 +91,13 @@ func (stack *Stack) Cur() *StackEntry {
 func (stack *Stack) Prev() *StackEntry {
 	if stack.depth-1 >= MIN_STACK_DEPTH {
 		return stack.entries[stack.depth-1]
+	}
+	return nil
+}
+
+func (entry *StackEntry) NextHint() *lang.ParserHint {
+	if entry.hintIdx < len(entry.entry.ParserData) {
+		return entry.entry.ParserData[entry.hintIdx+1]
 	}
 	return nil
 }

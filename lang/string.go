@@ -30,7 +30,8 @@ func init() {
 				},
 				{
 					Type: HINT_TYPE_TOKEN,
-					Name: `Generic`,
+					//Name: `Generic`,
+					Many: true,
 				},
 				{
 					Type: HINT_TYPE_TOKEN,
@@ -48,7 +49,8 @@ func init() {
 				},
 				{
 					Type: HINT_TYPE_TOKEN,
-					Name: `Generic`,
+					//Name: `Generic`,
+					Many: true,
 				},
 				{
 					Type: HINT_TYPE_TOKEN,
