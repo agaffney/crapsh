@@ -19,9 +19,10 @@ type Stack struct {
 type StackEntry struct {
 	//	hint           *lang.ParserHint
 	//	allowed        []*lang.ParserHint
-	entry    *lang.ElementEntry
-	position Position
-	element  lang.Element
+	entry          *lang.ElementEntry
+	position       Position
+	element        lang.Element
+	parentEndToken *lang.ParserHint
 }
 
 func (stack *Stack) Reset() {

@@ -19,6 +19,9 @@ func (p *Parser) getTokenIdx() int {
 
 func (p *Parser) setTokenIdx(idx int) {
 	p.tokenIdx = idx
+	if idx >= 0 {
+		fmt.Printf("setTokenIdx(%d): curToken = %#v\n", idx, p.curToken())
+	}
 }
 
 func (p *Parser) curToken() *Token {

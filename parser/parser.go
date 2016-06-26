@@ -67,9 +67,10 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 	var err error
 	var count int
 	var ok bool
-	origTokenIdx := p.getTokenIdx()
+	var origTokenIdx int
 	for {
 		ok = false
+		origTokenIdx = p.getTokenIdx()
 		switch {
 		case hint.Type == lang.HINT_TYPE_ELEMENT:
 			ok, err = p.parseElement(hint.Name)
@@ -82,18 +83,18 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 		default:
 			return ok, fmt.Errorf("Unhandled hint type: %d\n", hint.Type)
 		}
-		util.DumpObject(ok, "parseHandleHint(): ok = ")
+		//util.DumpObject(ok, "parseHandleHint(): ok = ")
 		if err != nil {
 			return ok, err
 		}
 		if !ok {
+			p.setTokenIdx(origTokenIdx)
 			if hint.Optional {
 				return true, nil
 			}
 			if hint.Many && count > 0 {
 				return true, nil
 			}
-			p.setTokenIdx(origTokenIdx)
 			return false, nil
 		}
 		if !hint.Many {
@@ -120,7 +121,7 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 
 func (p *Parser) parseGroup(hints []*lang.ParserHint) (bool, error) {
 	for _, hint := range hints {
-		util.DumpObject(hint, "parseGroup(): hint = ")
+		//util.DumpObject(hint, "parseGroup(): hint = ")
 		ok, err := p.parseHandleHint(hint)
 		if err != nil {
 			return ok, err
@@ -137,7 +138,7 @@ func (p *Parser) parseElement(element string) (bool, error) {
 	if entry == nil {
 		return false, nil
 	}
-	util.DumpObject(entry, "parseElement(): entry = ")
+	//util.DumpObject(entry, "parseElement(): entry = ")
 	p.stack.Add(entry)
 	e := lang.NewGeneric(entry.Name)
 	//fmt.Printf("%#v\n", e)
@@ -160,7 +161,7 @@ func (p *Parser) parseElement(element string) (bool, error) {
 
 func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 	for _, hint := range hints {
-		util.DumpObject(hint, "parseAny(): hint = ")
+		//util.DumpObject(hint, "parseAny(): hint = ")
 		ok, err := p.parseHandleHint(hint)
 		if err != nil {
 			return ok, err
