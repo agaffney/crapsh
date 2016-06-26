@@ -34,21 +34,22 @@ func (p *Parser) prevToken() {
 	}
 }
 
-func (p *Parser) nextToken() error {
+func (p *Parser) nextToken() (*Token, error) {
 	if p.tokenIdx < len(p.tokenBuf)-1 {
 		p.tokenIdx++
+		return p.curToken(), nil
 	} else {
 		token, err := p.readToken()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if token == nil {
-			return nil
+			return nil, nil
 		}
 		p.tokenBuf = append(p.tokenBuf, token)
 		p.tokenIdx++
+		return token, nil
 	}
-	return nil
 }
 
 func (p *Parser) readToken() (*Token, error) {

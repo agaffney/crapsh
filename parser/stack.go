@@ -60,7 +60,7 @@ func (stack *Stack) Add(entry *lang.ElementEntry) {
 	stack.entries = append(stack.entries, e)
 	stack.depth++
 	//e.element = stack.parser.newElement()
-	fmt.Printf("\n>>> stack[%d] = %#v\n\n", stack.depth, entry)
+	fmt.Printf("\n>>> stack[%d] = %#v, parentEndToken=%#v\n\n", stack.depth, entry, e.parentEndToken)
 	//fmt.Printf("  allowed = [\n")
 	//for _, foo := range e.allowed {
 	//	fmt.Printf("    %#v,\n", foo)
@@ -77,7 +77,7 @@ func (stack *Stack) Remove() {
 	stack.entries = stack.entries[:len(stack.entries)-1]
 	stack.depth--
 	if stack.depth >= MIN_STACK_DEPTH {
-		fmt.Printf("\n<<< stack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].entry)
+		fmt.Printf("\n<<< stack[%d] = %#v, parentEndToken=%#v\n\n", stack.depth, stack.entries[stack.depth].entry, stack.entries[stack.depth].parentEndToken)
 	}
 }
 
@@ -96,7 +96,7 @@ func (stack *Stack) Prev() *StackEntry {
 }
 
 func (entry *StackEntry) NextHint() *lang.ParserHint {
-	if entry.hintIdx < len(entry.entry.ParserData) {
+	if entry.hintIdx < len(entry.entry.ParserData)-1 {
 		return entry.entry.ParserData[entry.hintIdx+1]
 	}
 	return nil

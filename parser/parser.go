@@ -2,11 +2,14 @@ package parser
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
 	"github.com/agaffney/crapsh/util"
 	"io"
 )
+
+var ERR_FOUND_PARENT_END_TOKEN = errors.New("found parent end token")
 
 type Parser struct {
 	Position
@@ -106,7 +109,8 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 }
 
 func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
-	if err := p.nextToken(); err != nil {
+	token, err := p.nextToken()
+	if err != nil {
 		if err == io.EOF {
 			return false, nil
 		}
@@ -114,10 +118,21 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 	}
 	util.DumpObject(hint, "parseToken(): hint = ")
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
-	foo := p.curToken()
-	if hint.Name == `` || hint.Name == foo.Type {
+	if nextHint := p.stack.Cur().NextHint(); nextHint != nil {
+		if nextHint.Type == lang.HINT_TYPE_TOKEN && nextHint.Name == token.Type {
+			p.prevToken()
+			return false, nil
+		}
+	} else {
+		if p.stack.Cur().parentEndToken != nil && p.stack.Cur().parentEndToken.Name == token.Type {
+			fmt.Printf("parseToken(): matched parentTokenEnd=%#v\n", p.stack.Cur().parentEndToken)
+			p.prevToken()
+			return false, ERR_FOUND_PARENT_END_TOKEN
+		}
+	}
+	if hint.Name == `` || hint.Name == token.Type {
 		e := lang.NewGeneric(`Token`)
-		e.Content = foo.Value
+		e.Content = token.Value
 		p.stack.Cur().element.AddChild(e)
 		return true, nil
 	}
@@ -172,7 +187,16 @@ func (p *Parser) parseElement(element string) (bool, error) {
 	p.stack.Cur().element = e
 	ok, err := p.parseGroup(entry.ParserData, true)
 	if err != nil {
-		return false, err
+		if err != ERR_FOUND_PARENT_END_TOKEN {
+			return false, err
+		} else {
+			// If the parent end token has been found and matches
+			// our current parent end token, pass the error up the
+			// chain
+			if p.stack.Cur().parentEndToken.Name == p.curToken().Type {
+				return false, err
+			}
+		}
 	}
 	p.stack.Remove()
 	if ok && p.stack.Cur() != nil {
