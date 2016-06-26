@@ -155,6 +155,9 @@ func (p *Parser) parseElement(element string) (bool, error) {
 				parentEndToken = nextHint
 			}
 		}
+		if parentEndToken == nil && p.stack.Cur().parentEndToken != nil {
+			parentEndToken = p.stack.Cur().parentEndToken
+		}
 	}
 	//util.DumpObject(entry, "parseElement(): entry = ")
 	p.stack.Add(entry)
