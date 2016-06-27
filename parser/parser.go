@@ -92,10 +92,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 		}
 		if !ok {
 			p.setTokenIdx(origTokenIdx)
-			if hint.Optional {
-				return true, nil
-			}
-			if hint.Many && count > 0 {
+			if hint.Optional || (hint.Many && count > 0) {
 				return true, nil
 			}
 			return false, nil
@@ -104,6 +101,25 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 			break
 		}
 		count++
+		// Look ahead to see if next token in buffer matches current end token
+		if nextHint := p.stack.Cur().NextHint(); nextHint != nil && nextHint.Type == lang.HINT_TYPE_TOKEN {
+			token, err := p.nextToken()
+			if err != nil {
+				if err == io.EOF {
+					return ok, nil
+				}
+				return ok, err
+			}
+			if token != nil && nextHint.Name == token.Type {
+				fmt.Printf("parseHandleHint(): look-ahead MATCH: token=%#v, nextHint=%#v\n", token, nextHint)
+				p.prevToken()
+				if hint.Optional || (hint.Many && count > 0) {
+					return true, nil
+				}
+				return ok, nil
+			}
+			p.prevToken()
+		}
 	}
 	return true, nil
 }

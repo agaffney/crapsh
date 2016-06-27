@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/agaffney/crapsh/lang/tokens"
 	//"github.com/agaffney/crapsh/util"
-	//"io"
+	"io"
 )
 
 type Token struct {
@@ -44,7 +44,7 @@ func (p *Parser) nextToken() (*Token, error) {
 			return nil, err
 		}
 		if token == nil {
-			return nil, nil
+			return nil, io.EOF
 		}
 		p.tokenBuf = append(p.tokenBuf, token)
 		p.tokenIdx++
