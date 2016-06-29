@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/agaffney/crapsh/lang/tokens"
 	//"github.com/agaffney/crapsh/util"
@@ -60,7 +61,7 @@ func (p *Parser) readToken() (*Token, error) {
 		buf_len = p.buf.Len()
 		if buf_len > 0 {
 			for _, foo := range tokens.Tokens {
-				if idx, length := foo.Match(p.buf.Buffer); idx > -1 {
+				if idx, length := foo.Match(p.buf); idx > -1 {
 					//fmt.Printf("idx=%d, length=%d, data='%s'\n", idx, length, p.buf.Bytes()[idx:idx+length])
 					if length == buf_len && foo.MatchUntilNextToken {
 						break
@@ -69,13 +70,13 @@ func (p *Parser) readToken() (*Token, error) {
 					if idx > 0 {
 						// Return data up to token as "generic" token and remove from buffer
 						token = &Token{Type: `Generic`, Value: string(p.buf.Bytes()[0:idx]), Pos: p.Position}
-						p.buf = NewBuffer(p.buf.Bytes()[idx:])
+						p.buf = bytes.NewBuffer(p.buf.Bytes()[idx:])
 					} else {
 						token = &Token{Type: foo.Name, Value: string(p.buf.Bytes()[idx : idx+length]), Pos: p.Position}
 						if length == p.buf.Len() {
 							p.buf.Reset()
 						} else {
-							p.buf = NewBuffer(p.buf.Bytes()[idx+length:])
+							p.buf = bytes.NewBuffer(p.buf.Bytes()[idx+length:])
 						}
 						if foo.AdvanceLine {
 							p.nextLine()

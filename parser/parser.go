@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
@@ -15,7 +16,7 @@ type Parser struct {
 	Position
 	input    *bufio.Reader
 	stack    *Stack
-	buf      *Buffer
+	buf      *bytes.Buffer
 	tokenBuf []*Token
 	tokenIdx int
 	LineChan chan lang.Element
@@ -32,7 +33,7 @@ func NewParser() *Parser {
 	parser := &Parser{}
 	parser.LineChan = make(chan lang.Element)
 	parser.stack = &Stack{parser: parser}
-	parser.buf = NewBuffer(nil)
+	parser.buf = bytes.NewBuffer(nil)
 	return parser
 }
 
