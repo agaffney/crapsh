@@ -30,6 +30,8 @@ func (state *State) Start() {
 		state.parser.Parse(file)
 	} else {
 		// Code to show prompt
+		fmt.Println("Interactive prompt not currently supported")
+		os.Exit(1)
 	}
 	for line := range state.parser.LineChan {
 		util.DumpJson(line, "Line: ")

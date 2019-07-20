@@ -5,7 +5,7 @@ BINARY=crapsh
 
 all: $(BINARY)
 
-$(BINARY):
+$(BINARY): $(shell find -name '*.go')
 	go build
 
 .PHONY: run test
