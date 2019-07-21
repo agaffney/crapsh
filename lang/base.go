@@ -48,18 +48,20 @@ func init() {
 					Type: HINT_TYPE_ANY,
 					Many: true,
 					Members: []*ParserHint{
-						{
-							Type: HINT_TYPE_ELEMENT,
-							Name: `StringSingle`,
-						},
-						{
-							Type: HINT_TYPE_ELEMENT,
-							Name: `StringDouble`,
-						},
-						{
-							Type: HINT_TYPE_ELEMENT,
-							Name: `SubshellCapture`,
-						},
+						/*
+							{
+								Type: HINT_TYPE_ELEMENT,
+								Name: `StringSingle`,
+							},
+							{
+								Type: HINT_TYPE_ELEMENT,
+								Name: `StringDouble`,
+							},
+							{
+								Type: HINT_TYPE_ELEMENT,
+								Name: `SubshellCapture`,
+							},
+						*/
 						{
 							Type: HINT_TYPE_ELEMENT,
 							Name: `Generic`,

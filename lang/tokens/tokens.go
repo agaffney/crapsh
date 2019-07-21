@@ -107,6 +107,7 @@ func (t *Token) Match(buf *bytes.Buffer) (int, int) {
 
 var Tokens []*Token
 
+// Add tokens to list of globally recognized tokens
 func registerTokens(tokens []*Token) {
 	if Tokens == nil {
 		Tokens = make([]*Token, 0)
@@ -116,6 +117,7 @@ func registerTokens(tokens []*Token) {
 	}
 }
 
+// Lookup token in global list
 func GetToken(name string) *Token {
 	for _, t := range Tokens {
 		if t.Name == name {
@@ -128,8 +130,9 @@ func GetToken(name string) *Token {
 func init() {
 	registerTokens([]*Token{
 		{
-			Name:    `Escape`,
-			Type:    TYPE_REGEXP,
+			Name: `Escape`,
+			Type: TYPE_REGEXP,
+			// Backslash followed by any character
 			Pattern: `\\.`,
 		},
 		{

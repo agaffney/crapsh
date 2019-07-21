@@ -53,6 +53,7 @@ func (p *Parser) nextToken() (*Token, error) {
 	}
 }
 
+// Scan input buffer for a matching token
 func (p *Parser) readToken() (*Token, error) {
 	var buf_len int
 	for {

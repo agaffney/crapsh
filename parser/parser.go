@@ -49,7 +49,7 @@ func (p *Parser) Parse(input io.Reader) {
 		for {
 			// Reset the hint stack
 			p.stack.Reset()
-			//line, err := p.scanTokens()
+			// Start parsing with "root" element
 			ok, err := p.parseElement("Line")
 			//util.DumpJson(line, "Line: ")
 			if err != nil {
@@ -66,6 +66,7 @@ func (p *Parser) Parse(input io.Reader) {
 	}()
 }
 
+// Handles an individual parser hint
 func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 	//util.DumpObject(hint, "parseHandleHint(): hint = ")
 	var err error
@@ -92,6 +93,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 			return ok, err
 		}
 		if !ok {
+			fmt.Printf("parseHandleHint(): !ok, hint.Many=%d, count=%d\n", hint.Many, count)
 			p.setTokenIdx(origTokenIdx)
 			if hint.Optional || (hint.Many && count > 0) {
 				return true, nil
@@ -156,6 +158,7 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 	return false, nil
 }
 
+// Handles a 'group' parser hint
 func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool, error) {
 	for idx, hint := range hints {
 		//util.DumpObject(hint, "parseGroup(): hint = ")
@@ -173,6 +176,7 @@ func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool,
 	return true, nil
 }
 
+// Handles an 'element' parser hint
 func (p *Parser) parseElement(element string) (bool, error) {
 	var parentEndToken *lang.ParserHint
 	entry := lang.GetElementEntry(element)
@@ -222,6 +226,7 @@ func (p *Parser) parseElement(element string) (bool, error) {
 	return ok, nil
 }
 
+// Handles an 'any' parser hint
 func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 	for _, hint := range hints {
 		//util.DumpObject(hint, "parseAny(): hint = ")
@@ -380,6 +385,7 @@ func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 //	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", p.stack.Cur().position.Line, p.stack.Cur().hint.TokenEnd)
 //}
 
+// Return a single character (rune) from the buffer
 func (p *Parser) nextRune() (rune, error) {
 	r, _, err := p.input.ReadRune()
 	p.Offset++
@@ -387,6 +393,7 @@ func (p *Parser) nextRune() (rune, error) {
 	return r, err
 }
 
+// Rewind buffer position by one character (rune)
 func (p *Parser) unreadRune() error {
 	err := p.input.UnreadRune()
 	p.Offset--
@@ -394,6 +401,7 @@ func (p *Parser) unreadRune() error {
 	return err
 }
 
+// Increment line number for input
 func (p *Parser) nextLine() {
 	p.Line++
 	p.LineOffset = 0
