@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
+	"github.com/agaffney/crapsh/parser/lexer"
 	"github.com/agaffney/crapsh/util"
 	"io"
 )
@@ -21,6 +22,7 @@ type Parser struct {
 	tokenIdx int
 	LineChan chan lang.Element
 	Error    error
+	lexer    *lexer.Lexer
 }
 
 type Position struct {
@@ -34,10 +36,21 @@ func NewParser() *Parser {
 	parser.LineChan = make(chan lang.Element)
 	parser.stack = &Stack{parser: parser}
 	parser.buf = bytes.NewBuffer(nil)
+	parser.lexer = lexer.New()
 	return parser
 }
 
 func (p *Parser) Parse(input io.Reader) {
+	p.lexer.Reset()
+	p.lexer.Start(input)
+	for {
+		t := p.lexer.ReadToken()
+		if t == nil {
+			break
+		}
+		fmt.Printf("%#v\n", t)
+	}
+	return
 	r := bufio.NewReader(input)
 	p.input = r
 	p.Line = 1

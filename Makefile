@@ -11,7 +11,7 @@ $(BINARY): $(shell find -name '*.go')
 .PHONY: run test
 
 run:
-	go run crapsh.go
+	go run crapsh.go -c 'echo foo'
 
 test:
 	find -type f -name '*_test.go' | xargs -r dirname | sort -u | while read package; do \
