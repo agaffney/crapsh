@@ -22,55 +22,72 @@ type TokenDefinition struct {
 	AdvanceLine         bool
 }
 
+func (t *TokenDefinition) findNextToken(buf *bytes.Buffer, offset int) int {
+	for i := offset; i < len(buf.String()); i++ {
+		offset++
+		for _, foo := range TokenDefinitions {
+			if foo.Name == t.Name {
+				break
+			}
+			if ok, _ := foo.Match(buf, offset); ok {
+				return offset
+			}
+		}
+	}
+	return -1
+}
+
 // Attempt to match token definition against buffer
-// Returns index and length
-func (t *TokenDefinition) Match(buf *bytes.Buffer) (int, int) {
+func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 	switch {
 	case t.Type == TYPE_SIMPLE:
 		token_len := len(t.Pattern)
 		if token_len == 0 {
-			return -1, 0
+			return false, ""
 		}
-		buf_len := buf.Len()
-		if buf_len < token_len {
-			return -1, 0
+		buf_len := len(buf.String())
+		if buf_len < (offset + token_len) {
+			return false, ""
 		}
-		//fmt.Printf("buf_len = %d, token_len = %d\n", buf_len, token_len)
-		buf_bytes := buf.Bytes()[buf.Len()-token_len:]
-		for i, b := range []byte(t.Pattern) {
-			if buf_bytes[i] != b {
-				return -1, 0
-			}
+		buf_str := buf.String()[offset : offset+token_len]
+		if buf_str != t.Pattern {
+			return false, ""
 		}
-		return buf.Len() - token_len, token_len
+		return true, buf_str
 	case t.Type == TYPE_REGEXP:
 		foo := regexp.MustCompile(t.Pattern)
-		match := foo.FindIndex(buf.Bytes())
+		match := foo.FindStringIndex(buf.String())
 		if match == nil {
-			return -1, 0
+			return false, ""
 		}
-		return match[0], match[1] - match[0]
+		return true, buf.String()[match[0] : match[1]-match[0]]
 	case t.Type == TYPE_MATCHALL:
-		return 0, buf.Len()
-	case t.Type == TYPE_WHITESPACE:
-		start_idx := -1
-		length := 0
-		for idx, c := range buf.String() {
-			if unicode.IsSpace(c) {
-				if start_idx == -1 {
-					start_idx = idx
-				}
-				length++
+		if t.MatchUntilNextToken {
+			nextOffset := t.findNextToken(buf, offset)
+			if nextOffset > 0 {
+				return true, buf.String()[offset : nextOffset-offset]
 			} else {
-				if start_idx > -1 {
-					break
-				}
+				return true, buf.String()[offset:]
+			}
+		} else {
+			return true, buf.String()[offset:]
+		}
+	case t.Type == TYPE_WHITESPACE:
+		ret := bytes.NewBuffer(nil)
+		for _, c := range buf.String()[offset:] {
+			if unicode.IsSpace(c) {
+				ret.WriteRune(c)
+			} else {
+				break
 			}
 		}
-		//fmt.Printf("whitespace - start_idx=%d, length=%d, buf='%s'\n", start_idx, length, buf.Bytes())
-		return start_idx, length
-		//case TYPE_CALLBACK:
-
+		if ret.Len() > 0 {
+			return true, ret.String()
+		} else {
+			return false, ""
+		}
+	case t.Type == TYPE_CALLBACK:
+		return false, ""
 	}
 	panic("Unknown token type on match!")
 }
@@ -81,8 +98,29 @@ var TokenDefinitions = []TokenDefinition{
 		Pattern: `$`,
 	},
 	{
+		Name:    `Semicolon`,
+		Pattern: `;`,
+	},
+	{
+		Name:    `SingleQuote`,
+		Pattern: `'`,
+	},
+	{
+		Name:    `DoubleQuote`,
+		Pattern: `"`,
+	},
+	{
+		Name:    `BackTick`,
+		Pattern: "`",
+	},
+	{
 		Name:                `Whitespace`,
 		Type:                TYPE_WHITESPACE,
+		MatchUntilNextToken: true,
+	},
+	{
+		Name:                `Generic`,
+		Type:                TYPE_MATCHALL,
 		MatchUntilNextToken: true,
 	},
 }

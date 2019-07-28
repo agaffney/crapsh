@@ -3,9 +3,11 @@ package lexer
 import (
 	"bufio"
 	"bytes"
-	//"fmt"
+	"fmt"
 	"io"
 )
+
+const BUF_THRESHOLD = 1024
 
 type Lexer struct {
 	buf        *bytes.Buffer
@@ -75,58 +77,54 @@ func (l *Lexer) nextLine() {
 // Scan input buffer for a matching token
 func (l *Lexer) generateTokens() {
 	var token *Token
-	var foundEOF bool
+	//var foundEOF bool
 	for {
 		// Check the buffer at the beginning to catch tokens already in the buffer
 		// from the last iteration
 		if l.buf.Len() > 0 {
+			fmt.Printf("buffer = '%s'\n", l.buf.String())
 			for _, foo := range TokenDefinitions {
-				if idx, length := foo.Match(l.buf); idx > -1 {
-					//fmt.Printf("idx=%d, length=%d, data='%s'\n", idx, length, l.buf.Bytes()[idx:idx+length])
-					if length == l.buf.Len() && foo.MatchUntilNextToken {
-						break
-					}
-					if idx > 0 {
-						// Return data up to token as "generic" token and remove from buffer
-						token = &Token{Type: `Generic`, Value: string(l.buf.Bytes()[0:idx]), LineNum: l.lineNum, Offset: l.lineOffset}
-						l.lineOffset += idx
-						l.buf = bytes.NewBuffer(l.buf.Bytes()[idx:])
+				if ok, value := foo.Match(l.buf, 0); ok {
+					token = &Token{Type: foo.Name, Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
+					l.lineOffset += len(value)
+					if len(value) == len(l.buf.String()) {
+						l.buf.Reset()
 					} else {
-						token = &Token{Type: foo.Name, Value: string(l.buf.Bytes()[idx : idx+length]), LineNum: l.lineNum, Offset: l.lineOffset}
-						l.lineOffset += length
-						if length == l.buf.Len() {
-							l.buf.Reset()
-						} else {
-							l.buf = bytes.NewBuffer(l.buf.Bytes()[idx+length:])
-						}
-						if foo.AdvanceLine {
-							l.nextLine()
-						}
+						l.buf = bytes.NewBufferString(l.buf.String()[len(value):])
+					}
+					if foo.AdvanceLine {
+						l.nextLine()
 					}
 					l.tokenChan <- token
 					break
 				}
 			}
-			if foundEOF && l.buf.Len() > 0 {
-				// Return remaining data as "generic" token
-				token = &Token{Type: `Generic`, Value: l.buf.String(), LineNum: l.lineNum, Offset: l.lineOffset}
-				l.buf.Reset()
-				l.tokenChan <- token
-			}
+			/*
+				if foundEOF && l.buf.Len() > 0 {
+					// Return remaining data as "generic" token
+					token = &Token{Type: `Generic`, Value: l.buf.String(), LineNum: l.lineNum, Offset: l.lineOffset}
+					l.buf.Reset()
+					l.tokenChan <- token
+				}
+			*/
 		}
-		r, _, err := l.input.ReadRune()
-		if err != nil {
-			if err != io.EOF {
-				l.errorChan <- err
+		if l.buf.Len() < BUF_THRESHOLD {
+			for i := 0; i < BUF_THRESHOLD; i++ {
+				r, _, err := l.input.ReadRune()
+				if err != nil {
+					if err != io.EOF {
+						l.errorChan <- err
+						break
+						//} else {
+						//	foundEOF = true
+					}
+				} else {
+					l.buf.WriteRune(r)
+				}
+			}
+			if l.buf.Len() == 0 {
 				break
-			} else {
-				foundEOF = true
 			}
-		} else {
-			l.buf.WriteRune(r)
-		}
-		if l.buf.Len() == 0 {
-			break
 		}
 	}
 	close(l.tokenChan)
