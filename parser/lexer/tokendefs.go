@@ -27,7 +27,11 @@ func (t *TokenDefinition) findNextToken(buf *bytes.Buffer, offset int) int {
 		offset++
 		for _, foo := range TokenDefinitions {
 			if foo.Name == t.Name {
-				break
+				continue
+			}
+			// This will match anything, so we skip when looking for the next token
+			if foo.Type == TYPE_MATCHALL {
+				continue
 			}
 			if ok, _ := foo.Match(buf, offset); ok {
 				return offset
@@ -94,6 +98,17 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 
 var TokenDefinitions = []TokenDefinition{
 	{
+		Name: `Escape`,
+		Type: TYPE_REGEXP,
+		// Backslash followed by any character
+		Pattern: `\\.`,
+	},
+	{
+		Name:        `Newline`,
+		Pattern:     "\n",
+		AdvanceLine: true,
+	},
+	{
 		Name:    `DollarSign`,
 		Pattern: `$`,
 	},
@@ -114,9 +129,38 @@ var TokenDefinitions = []TokenDefinition{
 		Pattern: "`",
 	},
 	{
+		Name:    `ParenOpen`,
+		Pattern: `(`,
+	},
+	{
+		Name:    `ParenClose`,
+		Pattern: `)`,
+	},
+	{
+		Name:    `CurlyBraceOpen`,
+		Pattern: `{`,
+	},
+	{
+		Name:    `CurlyBraceClose`,
+		Pattern: `}`,
+	},
+	{
+		Name:    `SquareBracketOpen`,
+		Pattern: `[`,
+	},
+	{
+		Name:    `SquareBracketClose`,
+		Pattern: `]`,
+	},
+	{
 		Name:                `Whitespace`,
 		Type:                TYPE_WHITESPACE,
 		MatchUntilNextToken: true,
+	},
+	{
+		Name:    `Identifier`,
+		Type:    TYPE_REGEXP,
+		Pattern: `[a-zA-Z_][a-zA-Z0-9_]+`,
 	},
 	{
 		Name:                `Generic`,
