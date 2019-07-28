@@ -20,7 +20,6 @@ type StackEntry struct {
 	//	hint           *lang.ParserHint
 	//	allowed        []*lang.ParserHint
 	entry          *lang.ElementEntry
-	position       Position
 	element        lang.Element
 	parentEndToken *lang.ParserHint
 	hintIdx        int
@@ -33,30 +32,32 @@ func (stack *Stack) Reset() {
 }
 
 func (stack *Stack) Add(entry *lang.ElementEntry) {
-	//	allowed := []*lang.ParserHint{}
-	//	if hint.CaptureAll {
-	//		// If the current stack entry captures all, we need to use the allowed
-	//		// elements from the "parent". We also want to filter ourselves out
-	//		for _, foo := range lang.GetElementHints(stack.Cur().hint.AllowedElements) {
-	//			if !foo.CaptureAll {
-	//				allowed = append(allowed, foo)
-	//			}
-	//		}
-	//		// Use the end token info from the parent
-	//		hint.TokenEnd = stack.Cur().hint.TokenEnd
-	//		hint.EndOnWhitespace = stack.Cur().hint.EndOnWhitespace
-	//	} else {
-	//		allowed = lang.GetElementHints(hint.AllowedElements)
-	//	}
-	//	parentTokenEnd := ""
-	//	if stack.depth > MIN_STACK_DEPTH {
-	//		if foo := stack.Cur().hint.TokenEnd; foo != "" && !stack.Cur().hint.EndTokenOptional {
-	//			parentTokenEnd = foo
-	//		} else {
-	//			parentTokenEnd = stack.Cur().parentTokenEnd
-	//		}
-	//	}
-	e := &StackEntry{entry: entry, position: stack.parser.Position}
+	/*
+		allowed := []*lang.ParserHint{}
+		if hint.CaptureAll {
+			// If the current stack entry captures all, we need to use the allowed
+			// elements from the "parent". We also want to filter ourselves out
+			for _, foo := range lang.GetElementHints(stack.Cur().hint.AllowedElements) {
+				if !foo.CaptureAll {
+					allowed = append(allowed, foo)
+				}
+			}
+			// Use the end token info from the parent
+			hint.TokenEnd = stack.Cur().hint.TokenEnd
+			hint.EndOnWhitespace = stack.Cur().hint.EndOnWhitespace
+		} else {
+			allowed = lang.GetElementHints(hint.AllowedElements)
+		}
+		parentTokenEnd := ""
+		if stack.depth > MIN_STACK_DEPTH {
+			if foo := stack.Cur().hint.TokenEnd; foo != "" && !stack.Cur().hint.EndTokenOptional {
+				parentTokenEnd = foo
+			} else {
+				parentTokenEnd = stack.Cur().parentTokenEnd
+			}
+		}
+	*/
+	e := &StackEntry{entry: entry}
 	stack.entries = append(stack.entries, e)
 	stack.depth++
 	//e.element = stack.parser.newElement()

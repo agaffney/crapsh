@@ -14,7 +14,6 @@ import (
 var ERR_FOUND_PARENT_END_TOKEN = errors.New("found parent end token")
 
 type Parser struct {
-	Position
 	input    *bufio.Reader
 	stack    *Stack
 	buf      *bytes.Buffer
@@ -23,12 +22,6 @@ type Parser struct {
 	LineChan chan lang.Element
 	Error    error
 	lexer    *lexer.Lexer
-}
-
-type Position struct {
-	Line       uint
-	Offset     uint
-	LineOffset uint
 }
 
 func NewParser() *Parser {
@@ -43,19 +36,6 @@ func NewParser() *Parser {
 func (p *Parser) Parse(input io.Reader) {
 	p.lexer.Reset()
 	p.lexer.Start(input)
-	for {
-		t := p.lexer.ReadToken()
-		if t == nil {
-			break
-		}
-		fmt.Printf("%#v\n", t)
-	}
-	return
-	r := bufio.NewReader(input)
-	p.input = r
-	p.Line = 1
-	p.LineOffset = 0
-	p.Offset = 0
 	p.tokenBuf = make([]*lexer.Token, 0)
 	p.tokenIdx = -1
 	go func() {
@@ -280,16 +260,15 @@ func (p *Parser) nextToken() (*lexer.Token, error) {
 		p.tokenIdx++
 		return p.curToken(), nil
 	} else {
+		token := p.lexer.ReadToken()
 		/*
-			token, err := p.readToken()
 			if err != nil {
 				return nil, err
 			}
-			if token == nil {
-				return nil, io.EOF
-			}
 		*/
-		token := p.lexer.ReadToken()
+		if token == nil {
+			return nil, io.EOF
+		}
 		p.tokenBuf = append(p.tokenBuf, token)
 		p.tokenIdx++
 		return token, nil
