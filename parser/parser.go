@@ -398,28 +398,6 @@ func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 //	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", p.stack.Cur().position.Line, p.stack.Cur().hint.TokenEnd)
 //}
 
-// Return a single character (rune) from the buffer
-func (p *Parser) nextRune() (rune, error) {
-	r, _, err := p.input.ReadRune()
-	p.Offset++
-	p.LineOffset++
-	return r, err
-}
-
-// Rewind buffer position by one character (rune)
-func (p *Parser) unreadRune() error {
-	err := p.input.UnreadRune()
-	p.Offset--
-	p.LineOffset--
-	return err
-}
-
-// Increment line number for input
-func (p *Parser) nextLine() {
-	p.Line++
-	p.LineOffset = 0
-}
-
 //func (p *Parser) newElement() lang.Element {
 //	e := lang.NewGeneric(p.stack.Cur().hint.Name)
 //	//fmt.Printf("%#v\n", e)
