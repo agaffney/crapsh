@@ -14,19 +14,20 @@ import (
 var ERR_FOUND_PARENT_END_TOKEN = errors.New("found parent end token")
 
 type Parser struct {
-	input    *bufio.Reader
-	stack    *Stack
-	buf      *bytes.Buffer
-	tokenBuf []*lexer.Token
-	tokenIdx int
-	LineChan chan lang.Element
-	Error    error
-	lexer    *lexer.Lexer
+	input       *bufio.Reader
+	stack       *Stack
+	buf         *bytes.Buffer
+	tokenBuf    []*lexer.Token
+	tokenIdx    int
+	commandChan chan lang.Element
+	errorChan   chan error
+	lexer       *lexer.Lexer
 }
 
 func NewParser() *Parser {
 	parser := &Parser{}
-	parser.LineChan = make(chan lang.Element)
+	parser.commandChan = make(chan lang.Element)
+	parser.errorChan = make(chan error)
 	parser.stack = &Stack{parser: parser}
 	parser.buf = bytes.NewBuffer(nil)
 	parser.lexer = lexer.New()
@@ -43,20 +44,37 @@ func (p *Parser) Parse(input io.Reader) {
 			// Reset the hint stack
 			p.stack.Reset()
 			// Start parsing with "root" element
-			ok, err := p.parseElement("Root")
-			//util.DumpJson(line, "Line: ")
+			ok, err := p.parseElement("Root", true)
 			if err != nil {
-				p.Error = err
+				p.errorChan <- err
+				close(p.errorChan)
 				break
 			}
 			// EOF
 			if !ok {
 				break
 			}
-			//p.LineChan <- line
 		}
-		close(p.LineChan)
+		close(p.commandChan)
 	}()
+}
+
+func (p *Parser) GetError() error {
+	select {
+	case err := <-p.errorChan:
+		return err
+	default:
+		return nil
+	}
+}
+
+func (p *Parser) GetCommand() *lang.Element {
+	cmd := <-p.commandChan
+	if cmd != nil {
+		return &cmd
+	} else {
+		return nil
+	}
 }
 
 // Handles an individual parser hint
@@ -71,7 +89,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 		origTokenIdx = p.getTokenIdx()
 		switch {
 		case hint.Type == lang.HINT_TYPE_ELEMENT:
-			ok, err = p.parseElement(hint.Name)
+			ok, err = p.parseElement(hint.Name, false)
 		case hint.Type == lang.HINT_TYPE_ANY:
 			ok, err = p.parseAny(hint.Members)
 		case hint.Type == lang.HINT_TYPE_GROUP:
@@ -171,7 +189,7 @@ func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool,
 }
 
 // Handles an 'element' parser hint
-func (p *Parser) parseElement(element string) (bool, error) {
+func (p *Parser) parseElement(element string, send_channel bool) (bool, error) {
 	var parentEndToken *lang.ParserHint
 	entry := lang.GetElementEntry(element)
 	if entry == nil {
@@ -214,8 +232,13 @@ func (p *Parser) parseElement(element string) (bool, error) {
 		}
 	}
 	p.stack.Remove()
-	if ok && p.stack.Cur() != nil {
-		p.stack.Cur().element.AddChild(e)
+	if ok {
+		if p.stack.Cur() != nil {
+			p.stack.Cur().element.AddChild(e)
+		} else if send_channel {
+			//util.DumpJson(e, "sending root element:\n")
+			p.commandChan <- e
+		}
 	}
 	return ok, nil
 }

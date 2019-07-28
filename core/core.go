@@ -33,10 +33,17 @@ func (state *State) Start() {
 		fmt.Println("Interactive prompt not currently supported")
 		os.Exit(1)
 	}
-	for line := range state.parser.LineChan {
-		util.DumpJson(line, "Line: ")
+	for {
+		cmd := state.parser.GetCommand()
+		if cmd == nil {
+			fmt.Println("no more commands")
+			break
+		}
+		util.DumpJson(cmd, "Command:\n")
 	}
-	if state.parser.Error != nil {
-		fmt.Printf("%s: %s\n", state.config.Binary, state.parser.Error)
+	if err := state.parser.GetError(); err != nil {
+		fmt.Printf("%s: %s\n", state.config.Binary, err)
+		os.Exit(1)
 	}
+	os.Exit(0)
 }

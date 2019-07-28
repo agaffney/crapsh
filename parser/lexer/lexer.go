@@ -3,7 +3,6 @@ package lexer
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 )
 
@@ -45,6 +44,15 @@ func (l *Lexer) Start(input io.Reader) {
 	go l.generateTokens()
 }
 
+func (l *Lexer) GetError() error {
+	e, ok := <-l.errorChan
+	if ok {
+		return e
+	} else {
+		return nil
+	}
+}
+
 func (l *Lexer) ReadToken() *Token {
 	t, ok := <-l.tokenChan
 	if ok {
@@ -77,12 +85,10 @@ func (l *Lexer) nextLine() {
 // Scan input buffer for a matching token
 func (l *Lexer) generateTokens() {
 	var token *Token
-	//var foundEOF bool
 	for {
 		// Check the buffer at the beginning to catch tokens already in the buffer
 		// from the last iteration
 		if l.buf.Len() > 0 {
-			fmt.Printf("buffer = '%s'\n", l.buf.String())
 			for _, foo := range TokenDefinitions {
 				if ok, value := foo.Match(l.buf, 0); ok {
 					token = &Token{Type: foo.Name, Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
@@ -99,14 +105,6 @@ func (l *Lexer) generateTokens() {
 					break
 				}
 			}
-			/*
-				if foundEOF && l.buf.Len() > 0 {
-					// Return remaining data as "generic" token
-					token = &Token{Type: `Generic`, Value: l.buf.String(), LineNum: l.lineNum, Offset: l.lineOffset}
-					l.buf.Reset()
-					l.tokenChan <- token
-				}
-			*/
 		}
 		if l.buf.Len() < BUF_THRESHOLD {
 			for i := 0; i < BUF_THRESHOLD; i++ {
@@ -115,8 +113,6 @@ func (l *Lexer) generateTokens() {
 					if err != io.EOF {
 						l.errorChan <- err
 						break
-						//} else {
-						//	foundEOF = true
 					}
 				} else {
 					l.buf.WriteRune(r)
