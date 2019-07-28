@@ -3,17 +3,12 @@ package lang
 func init() {
 	registerElements([]*ElementEntry{
 		{
-			Name: `Line`,
+			Name: `Root`,
 			ParserData: []*ParserHint{
 				{
 					Type: HINT_TYPE_ELEMENT,
 					Name: `Command`,
 					Many: true,
-				},
-				{
-					Type:     HINT_TYPE_TOKEN,
-					Name:     `Newline`,
-					Optional: true,
 				},
 			},
 		},
@@ -35,9 +30,18 @@ func init() {
 					},
 				},
 				{
-					Type:     HINT_TYPE_TOKEN,
-					Name:     `Semicolon`,
+					Type:     HINT_TYPE_ANY,
 					Optional: true,
+					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_TOKEN,
+							Name: `Newline`,
+						},
+						{
+							Type: HINT_TYPE_TOKEN,
+							Name: `Semicolon`,
+						},
+					},
 				},
 			},
 		},

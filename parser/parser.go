@@ -43,7 +43,7 @@ func (p *Parser) Parse(input io.Reader) {
 			// Reset the hint stack
 			p.stack.Reset()
 			// Start parsing with "root" element
-			ok, err := p.parseElement("Line")
+			ok, err := p.parseElement("Root")
 			//util.DumpJson(line, "Line: ")
 			if err != nil {
 				p.Error = err
@@ -152,6 +152,7 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 }
 
 // Handles a 'group' parser hint
+// Succeeds if all parser hints match
 func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool, error) {
 	for idx, hint := range hints {
 		//util.DumpObject(hint, "parseGroup(): hint = ")
@@ -220,6 +221,7 @@ func (p *Parser) parseElement(element string) (bool, error) {
 }
 
 // Handles an 'any' parser hint
+// Succeeds if any parser hints match
 func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 	for _, hint := range hints {
 		//util.DumpObject(hint, "parseAny(): hint = ")

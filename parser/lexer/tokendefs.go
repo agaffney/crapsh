@@ -98,12 +98,6 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 
 var TokenDefinitions = []TokenDefinition{
 	{
-		Name: `Escape`,
-		Type: TYPE_REGEXP,
-		// Backslash followed by any character
-		Pattern: `\\.`,
-	},
-	{
 		Name:        `Newline`,
 		Pattern:     "\n",
 		AdvanceLine: true,
@@ -156,6 +150,17 @@ var TokenDefinitions = []TokenDefinition{
 		Name:                `Whitespace`,
 		Type:                TYPE_WHITESPACE,
 		MatchUntilNextToken: true,
+	},
+	{
+		Name:        `EscapeNewline`,
+		Pattern:     "\\\n",
+		AdvanceLine: true,
+	},
+	{
+		Name: `Escape`,
+		Type: TYPE_REGEXP,
+		// Backslash followed by any character
+		Pattern: `\\.`,
 	},
 	{
 		Name:    `Identifier`,
