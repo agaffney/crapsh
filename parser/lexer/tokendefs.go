@@ -1,6 +1,10 @@
 package lexer
 
-import ()
+import (
+	"bytes"
+	"regexp"
+	"unicode"
+)
 
 const (
 	TYPE_SIMPLE = iota
@@ -71,9 +75,14 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer) (int, int) {
 	panic("Unknown token type on match!")
 }
 
-var Tokens = []TokenDefinition{
+var TokenDefinitions = []TokenDefinition{
 	{
 		Name:    `DollarSign`,
 		Pattern: `$`,
+	},
+	{
+		Name:                `Whitespace`,
+		Type:                TYPE_WHITESPACE,
+		MatchUntilNextToken: true,
 	},
 }

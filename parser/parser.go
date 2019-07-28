@@ -18,7 +18,7 @@ type Parser struct {
 	input    *bufio.Reader
 	stack    *Stack
 	buf      *bytes.Buffer
-	tokenBuf []*Token
+	tokenBuf []*lexer.Token
 	tokenIdx int
 	LineChan chan lang.Element
 	Error    error
@@ -56,7 +56,7 @@ func (p *Parser) Parse(input io.Reader) {
 	p.Line = 1
 	p.LineOffset = 0
 	p.Offset = 0
-	p.tokenBuf = make([]*Token, 0)
+	p.tokenBuf = make([]*lexer.Token, 0)
 	p.tokenIdx = -1
 	go func() {
 		for {
@@ -252,6 +252,48 @@ func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (p *Parser) getTokenIdx() int {
+	return p.tokenIdx
+}
+
+func (p *Parser) setTokenIdx(idx int) {
+	p.tokenIdx = idx
+	if idx >= 0 {
+		fmt.Printf("setTokenIdx(%d): curToken = %#v\n", idx, p.curToken())
+	}
+}
+
+func (p *Parser) curToken() *lexer.Token {
+	return p.tokenBuf[p.tokenIdx]
+}
+
+func (p *Parser) prevToken() {
+	if p.tokenIdx > 0 {
+		p.tokenIdx--
+	}
+}
+
+func (p *Parser) nextToken() (*lexer.Token, error) {
+	if p.tokenIdx < len(p.tokenBuf)-1 {
+		p.tokenIdx++
+		return p.curToken(), nil
+	} else {
+		/*
+			token, err := p.readToken()
+			if err != nil {
+				return nil, err
+			}
+			if token == nil {
+				return nil, io.EOF
+			}
+		*/
+		token := p.lexer.ReadToken()
+		p.tokenBuf = append(p.tokenBuf, token)
+		p.tokenIdx++
+		return token, nil
+	}
 }
 
 //func (p *Parser) GetNextLine() (lang.Element, error) {
