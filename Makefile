@@ -1,9 +1,12 @@
 # Basic Makefile for crapsh
 BINARY=crapsh
 
-.PHONY:all
+.PHONY: all clean
 
 all: $(BINARY)
+
+clean:
+	rm -f $(BINARY)
 
 $(BINARY): $(shell find -name '*.go')
 	go build
