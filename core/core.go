@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/agaffney/crapsh/parser"
 	"github.com/agaffney/crapsh/util"
@@ -23,6 +24,7 @@ func New(config *Config) *State {
 func (state *State) Start() {
 	if state.config.CommandProvided {
 		state.parser.Parse(strings.NewReader(state.config.Command))
+		state.processCommands()
 	} else if state.config.FileProvided && !state.config.ReadFromStdin {
 		file, err := os.Open(state.config.File)
 		if err != nil {
@@ -30,6 +32,7 @@ func (state *State) Start() {
 		}
 		state.config.Binary = state.config.File
 		state.parser.Parse(file)
+		state.processCommands()
 	} else {
 		rl, err := readline.NewEx(&readline.Config{
 			Prompt:      "\033[31m»\033[0m ",
@@ -57,8 +60,15 @@ func (state *State) Start() {
 				break
 			}
 			fmt.Println(line)
+			buf := bytes.NewBufferString(line)
+			state.parser.Parse(buf)
+			state.processCommands()
 		}
 	}
+	os.Exit(0)
+}
+
+func (state *State) processCommands() {
 	for {
 		cmd := state.parser.GetCommand()
 		if cmd == nil {
@@ -71,5 +81,4 @@ func (state *State) Start() {
 		fmt.Printf("%s: %s\n", state.config.Binary, err)
 		os.Exit(1)
 	}
-	os.Exit(0)
 }

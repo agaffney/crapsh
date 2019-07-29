@@ -26,16 +26,20 @@ type Parser struct {
 
 func NewParser() *Parser {
 	parser := &Parser{}
-	parser.commandChan = make(chan lang.Element)
-	parser.errorChan = make(chan error)
-	parser.stack = &Stack{parser: parser}
-	parser.buf = bytes.NewBuffer(nil)
 	parser.lexer = lexer.New()
 	return parser
 }
 
-func (p *Parser) Parse(input io.Reader) {
+func (p *Parser) Reset() {
+	p.commandChan = make(chan lang.Element)
+	p.errorChan = make(chan error)
+	p.stack = &Stack{parser: p}
+	p.buf = bytes.NewBuffer(nil)
 	p.lexer.Reset()
+}
+
+func (p *Parser) Parse(input io.Reader) {
+	p.Reset()
 	p.lexer.Start(input)
 	p.tokenBuf = make([]*lexer.Token, 0)
 	p.tokenIdx = -1
