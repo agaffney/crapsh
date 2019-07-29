@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/agaffney/crapsh/parser"
 	"github.com/agaffney/crapsh/util"
+	"github.com/chzyer/readline"
+	"io"
 	"os"
 	"strings"
 )
@@ -29,9 +31,33 @@ func (state *State) Start() {
 		state.config.Binary = state.config.File
 		state.parser.Parse(file)
 	} else {
-		// Code to show prompt
-		fmt.Println("Interactive prompt not currently supported")
-		os.Exit(1)
+		rl, err := readline.NewEx(&readline.Config{
+			Prompt:      "\033[31m»\033[0m ",
+			HistoryFile: "/tmp/readline.tmp",
+			//AutoComplete:    completer,
+			InterruptPrompt: "^C",
+			EOFPrompt:       "exit",
+
+			HistorySearchFold: true,
+			//FuncFilterInputRune: filterInput,
+		})
+		if err != nil {
+			panic(err)
+		}
+		defer rl.Close()
+		for {
+			line, err := rl.Readline()
+			if err == readline.ErrInterrupt {
+				if len(line) == 0 {
+					break
+				} else {
+					continue
+				}
+			} else if err == io.EOF {
+				break
+			}
+			fmt.Println(line)
+		}
 	}
 	for {
 		cmd := state.parser.GetCommand()
