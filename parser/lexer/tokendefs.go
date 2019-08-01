@@ -64,7 +64,7 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 		if match == nil {
 			return false, ""
 		}
-		return true, buf.String()[match[0] : match[1]-match[0]]
+		return true, buf.String()[match[0]:match[1]]
 	case t.Type == TYPE_MATCHALL:
 		if t.MatchUntilNextToken {
 			nextOffset := t.findNextToken(buf, offset)

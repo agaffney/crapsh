@@ -13,8 +13,11 @@ $(BINARY): $(shell find -name '*.go')
 
 .PHONY: run test
 
+#TEST_CMD="foo $(echo bar foo bar) baz\nabc \"123 456\" 'd\nef' 789"
+#TEST_CMD=foo baz\nabc \"123 456\" 'd\nef' 789
+TEST_CMD=echo foo bar
 run:
-	go run crapsh.go -c 'echo foo'
+	go run crapsh.go -c "$(TEST_CMD)"
 
 test:
 	find -type f -name '*_test.go' | xargs -r dirname | sort -u | while read package; do \
