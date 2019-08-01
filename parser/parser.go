@@ -108,7 +108,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 			return ok, err
 		}
 		if !ok {
-			fmt.Printf("parseHandleHint(): !ok, hint.Many=%d, count=%d\n", hint.Many, count)
+			fmt.Printf("parseHandleHint(): !ok, hint.Many=%t, count=%d\n", hint.Many, count)
 			p.setTokenIdx(origTokenIdx)
 			if hint.Optional || (hint.Many && count > 0) {
 				return true, nil
