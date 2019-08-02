@@ -103,12 +103,32 @@ var TokenDefinitions = []TokenDefinition{
 		AdvanceLine: true,
 	},
 	{
+		Name:    `ArithmeticOpen`,
+		Pattern: `$((`,
+	},
+	{
+		Name:    `ArithmeticClose`,
+		Pattern: `))`,
+	},
+	{
+		Name:    `SubshellOpen`,
+		Pattern: `$(`,
+	},
+	{
+		Name:    `VarOpen`,
+		Pattern: `${`,
+	},
+	{
 		Name:    `DollarSign`,
 		Pattern: `$`,
 	},
 	{
 		Name:    `Semicolon`,
 		Pattern: `;`,
+	},
+	{
+		Name:    `Pipe`,
+		Pattern: `|`,
 	},
 	{
 		Name:    `SingleQuote`,
@@ -156,12 +176,13 @@ var TokenDefinitions = []TokenDefinition{
 		Pattern:     "\\\n",
 		AdvanceLine: true,
 	},
+	// Backslash followed by any character
 	{
-		Name: `Escape`,
-		Type: TYPE_REGEXP,
-		// Backslash followed by any character
+		Name:    `Escape`,
+		Type:    TYPE_REGEXP,
 		Pattern: `\\.`,
 	},
+	// Letter or underscore followed by any number of letters, numbers, or underscores
 	{
 		Name:    `Identifier`,
 		Type:    TYPE_REGEXP,
