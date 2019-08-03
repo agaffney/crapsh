@@ -26,6 +26,7 @@ func (t *TokenDefinition) findNextToken(buf *bytes.Buffer, offset int) int {
 	for i := offset; i < len(buf.String()); i++ {
 		offset++
 		for _, foo := range TokenDefinitions {
+			// Don't match ourselves
 			if foo.Name == t.Name {
 				continue
 			}
@@ -59,8 +60,9 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 		}
 		return true, buf_str
 	case t.Type == TYPE_REGEXP:
-		foo := regexp.MustCompile(t.Pattern)
-		match := foo.FindStringIndex(buf.String())
+		// Implicitly anchor pattern to beginning of string
+		foo := regexp.MustCompile(`^` + t.Pattern)
+		match := foo.FindStringIndex(buf.String()[offset:])
 		if match == nil {
 			return false, ""
 		}
@@ -69,7 +71,7 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 		if t.MatchUntilNextToken {
 			nextOffset := t.findNextToken(buf, offset)
 			if nextOffset > 0 {
-				return true, buf.String()[offset : nextOffset-offset]
+				return true, buf.String()[offset:nextOffset]
 			} else {
 				return true, buf.String()[offset:]
 			}
@@ -192,7 +194,7 @@ var TokenDefinitions = []TokenDefinition{
 	{
 		Name:    `Identifier`,
 		Type:    TYPE_REGEXP,
-		Pattern: `[a-zA-Z_][a-zA-Z0-9_]+`,
+		Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`,
 	},
 	{
 		Name:                `Generic`,
