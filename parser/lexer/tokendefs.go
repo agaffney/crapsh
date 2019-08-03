@@ -111,7 +111,7 @@ var TokenDefinitions = []TokenDefinition{
 		Pattern: `))`,
 	},
 	{
-		Name:    `SubshellOpen`,
+		Name:    `SubshellCaptureOpen`,
 		Pattern: `$(`,
 	},
 	{
@@ -137,6 +137,12 @@ var TokenDefinitions = []TokenDefinition{
 	{
 		Name:    `DoubleQuote`,
 		Pattern: `"`,
+	},
+	{
+		Name:        `Comment`,
+		Type:        TYPE_REGEXP,
+		Pattern:     `#.*$`,
+		AdvanceLine: true,
 	},
 	{
 		Name:    `BackTick`,

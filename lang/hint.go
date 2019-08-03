@@ -9,9 +9,10 @@ const (
 )
 
 type ParserHint struct {
-	Name     string
 	Type     int
-	Optional bool
-	Many     bool
+	Name     string // Name of element or token to match
+	Optional bool   // Hint is optional
+	Many     bool   // Hint can match multiple times
+	Final    bool   // Consider the element matched if this hint matches
 	Members  []*ParserHint
 }

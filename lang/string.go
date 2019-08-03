@@ -25,8 +25,9 @@ func init() {
 			Name: `StringSingle`,
 			ParserData: []*ParserHint{
 				{
-					Type: HINT_TYPE_TOKEN,
-					Name: `SingleQuote`,
+					Type:  HINT_TYPE_TOKEN,
+					Name:  `SingleQuote`,
+					Final: true,
 				},
 				{
 					Type: HINT_TYPE_TOKEN,
@@ -44,8 +45,9 @@ func init() {
 			Name: `StringDouble`,
 			ParserData: []*ParserHint{
 				{
-					Type: HINT_TYPE_TOKEN,
-					Name: `DoubleQuote`,
+					Type:  HINT_TYPE_TOKEN,
+					Name:  `DoubleQuote`,
+					Final: true,
 				},
 				{
 					Type: HINT_TYPE_TOKEN,

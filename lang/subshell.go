@@ -1,6 +1,57 @@
 package lang
 
 func init() {
+	registerElements([]*ElementEntry{
+		{
+			Name: `SubshellCapture`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_ANY,
+					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_GROUP,
+							Members: []*ParserHint{
+								{
+									Type:  HINT_TYPE_TOKEN,
+									Name:  `SubshellCaptureOpen`,
+									Final: true,
+								},
+								{
+									Type: HINT_TYPE_ELEMENT,
+									Name: `FullCommand`,
+									Many: true,
+								},
+								{
+									Type: HINT_TYPE_TOKEN,
+									Name: `ParenClose`,
+								},
+							},
+						},
+						{
+							Type: HINT_TYPE_GROUP,
+							Members: []*ParserHint{
+								{
+									Type:  HINT_TYPE_TOKEN,
+									Name:  `Backtick`,
+									Final: true,
+								},
+								{
+									Type: HINT_TYPE_ELEMENT,
+									// TODO: Use variation of FullCommand that won't allow a backtick subshell
+									Name: `FullCommand`,
+									Many: true,
+								},
+								{
+									Type: HINT_TYPE_TOKEN,
+									Name: `Backtick`,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
 	//registerParserHints([]*ParserHint{
 	//	{
 	//		Name:            `SubshellCapture`,

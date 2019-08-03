@@ -8,7 +8,22 @@ func init() {
 				{
 					Type: HINT_TYPE_ELEMENT,
 					Name: `Command`,
-					Many: true,
+				},
+				{
+					Type:     HINT_TYPE_GROUP,
+					Many:     true,
+					Optional: true,
+					Members: []*ParserHint{
+						{
+							Type:  HINT_TYPE_TOKEN,
+							Name:  `Pipe`,
+							Final: true,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `Command`,
+						},
+					},
 				},
 			},
 		},
@@ -52,15 +67,15 @@ func init() {
 					Type: HINT_TYPE_ANY,
 					Many: true,
 					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `StringSingle`,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `StringDouble`,
+						},
 						/*
-							{
-								Type: HINT_TYPE_ELEMENT,
-								Name: `StringSingle`,
-							},
-							{
-								Type: HINT_TYPE_ELEMENT,
-								Name: `StringDouble`,
-							},
 							{
 								Type: HINT_TYPE_ELEMENT,
 								Name: `SubshellCapture`,
