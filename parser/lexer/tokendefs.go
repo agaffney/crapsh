@@ -99,106 +99,29 @@ func (t *TokenDefinition) Match(buf *bytes.Buffer, offset int) (bool, string) {
 }
 
 var TokenDefinitions = []TokenDefinition{
-	{
-		Name:        `Newline`,
-		Pattern:     "\n",
-		AdvanceLine: true,
-	},
-	{
-		Name:    `ArithmeticOpen`,
-		Pattern: `$((`,
-	},
-	{
-		Name:    `ArithmeticClose`,
-		Pattern: `))`,
-	},
-	{
-		Name:    `SubshellCaptureOpen`,
-		Pattern: `$(`,
-	},
-	{
-		Name:    `VarOpen`,
-		Pattern: `${`,
-	},
-	{
-		Name:    `DollarSign`,
-		Pattern: `$`,
-	},
-	{
-		Name:    `Semicolon`,
-		Pattern: `;`,
-	},
-	{
-		Name:    `Pipe`,
-		Pattern: `|`,
-	},
-	{
-		Name:    `SingleQuote`,
-		Pattern: `'`,
-	},
-	{
-		Name:    `DoubleQuote`,
-		Pattern: `"`,
-	},
-	{
-		Name:        `Comment`,
-		Type:        TYPE_REGEXP,
-		Pattern:     `#.*$`,
-		AdvanceLine: true,
-	},
-	{
-		Name:    `BackTick`,
-		Pattern: "`",
-	},
-	{
-		Name:    `ParenOpen`,
-		Pattern: `(`,
-	},
-	{
-		Name:    `ParenClose`,
-		Pattern: `)`,
-	},
-	{
-		Name:    `CurlyBraceOpen`,
-		Pattern: `{`,
-	},
-	{
-		Name:    `CurlyBraceClose`,
-		Pattern: `}`,
-	},
-	{
-		Name:    `SquareBracketOpen`,
-		Pattern: `[`,
-	},
-	{
-		Name:    `SquareBracketClose`,
-		Pattern: `]`,
-	},
-	{
-		Name:                `Whitespace`,
-		Type:                TYPE_WHITESPACE,
-		MatchUntilNextToken: true,
-	},
-	{
-		Name:        `EscapeNewline`,
-		Pattern:     "\\\n",
-		AdvanceLine: true,
-	},
+	{Name: `Newline`, Pattern: "\n", AdvanceLine: true},
+	{Name: `ArithmeticOpen`, Pattern: `$((`},
+	{Name: `ArithmeticClose`, Pattern: `))`},
+	{Name: `SubshellCaptureOpen`, Pattern: `$(`},
+	{Name: `VarOpen`, Pattern: `${`},
+	{Name: `DollarSign`, Pattern: `$`},
+	{Name: `Semicolon`, Pattern: `;`},
+	{Name: `Pipe`, Pattern: `|`},
+	{Name: `SingleQuote`, Pattern: `'`},
+	{Name: `DoubleQuote`, Pattern: `"`},
+	{Name: `Comment`, Type: TYPE_REGEXP, Pattern: `#.*$`, AdvanceLine: true},
+	{Name: `BackTick`, Pattern: "`"},
+	{Name: `ParenOpen`, Pattern: `(`},
+	{Name: `ParenClose`, Pattern: `)`},
+	{Name: `CurlyBraceOpen`, Pattern: `{`},
+	{Name: `CurlyBraceClose`, Pattern: `}`},
+	{Name: `SquareBracketOpen`, Pattern: `[`},
+	{Name: `SquareBracketClose`, Pattern: `]`},
+	{Name: `Whitespace`, Type: TYPE_WHITESPACE, MatchUntilNextToken: true},
+	{Name: `EscapeNewline`, Pattern: "\\n", AdvanceLine: true},
 	// Backslash followed by any character
-	{
-		Name:    `Escape`,
-		Type:    TYPE_REGEXP,
-		Pattern: `\\.`,
-	},
+	{Name: `Escape`, Type: TYPE_REGEXP, Pattern: `\\.`},
 	// Letter or underscore followed by any number of letters, numbers, or underscores
-	{
-		Name:    `Identifier`,
-		Type:    TYPE_REGEXP,
-		Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`,
-	},
-	{
-		Name:                `Generic`,
-		Type:                TYPE_MATCHALL,
-		MatchUntilNextToken: true,
-	},
+	{Name: `Identifier`, Type: TYPE_REGEXP, Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
+	{Name: `Generic`, Type: TYPE_MATCHALL, MatchUntilNextToken: true},
 }

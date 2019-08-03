@@ -51,6 +51,29 @@ func init() {
 				},
 			},
 		},
+		{
+			Name: `Subshell`,
+			ParserData: []*ParserHint{
+				{
+					Type: HINT_TYPE_GROUP,
+					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_TOKEN,
+							Name: `ParenOpen`,
+						},
+						{
+							Type: HINT_TYPE_ELEMENT,
+							Name: `FullCommand`,
+							Many: true,
+						},
+						{
+							Type: HINT_TYPE_TOKEN,
+							Name: `ParenClose`,
+						},
+					},
+				},
+			},
+		},
 	})
 	//registerParserHints([]*ParserHint{
 	//	{
