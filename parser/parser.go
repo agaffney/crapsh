@@ -119,6 +119,7 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 			break
 		}
 		count++
+		// TODO: remove look ahead, as we're being specific about valid tokens in the hints
 		// Look ahead to see if next token in buffer matches current end token
 		if nextHint := p.stack.Cur().NextHint(); nextHint != nil && nextHint.Type == lang.HINT_TYPE_TOKEN {
 			token, err := p.nextToken()
@@ -152,6 +153,7 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 	}
 	util.DumpObject(hint, "parseToken(): hint = ")
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
+	// TODO: remove parentEndToken logic, as it's not needed
 	if nextHint := p.stack.Cur().NextHint(); nextHint != nil {
 		if nextHint.Type == lang.HINT_TYPE_TOKEN && nextHint.Name == token.Type {
 			p.prevToken()
@@ -164,7 +166,14 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 			return false, ERR_FOUND_PARENT_END_TOKEN
 		}
 	}
-	if hint.Name == `` || hint.Name == token.Type {
+	tokenMatch := false
+	for _, hint_token := range hint.Tokens {
+		if hint_token == token.Type {
+			tokenMatch = true
+			break
+		}
+	}
+	if tokenMatch {
 		e := lang.NewGeneric(`Token`)
 		e.Content = token.Value
 		p.stack.Cur().element.AddChild(e)

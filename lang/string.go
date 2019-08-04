@@ -25,18 +25,19 @@ func init() {
 			Name: `StringSingle`,
 			ParserData: []*ParserHint{
 				{
-					Type:  HINT_TYPE_TOKEN,
-					Name:  `SingleQuote`,
-					Final: true,
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`SingleQuote`},
+					Final:  true,
 				},
+				// TODO: list of valid tokens
 				{
 					Type: HINT_TYPE_TOKEN,
 					//Name: `Generic`,
 					Many: true,
 				},
 				{
-					Type: HINT_TYPE_TOKEN,
-					Name: `SingleQuote`,
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`SingleQuote`},
 				},
 			},
 			Factory: NewStringSingle,
@@ -45,18 +46,19 @@ func init() {
 			Name: `StringDouble`,
 			ParserData: []*ParserHint{
 				{
-					Type:  HINT_TYPE_TOKEN,
-					Name:  `DoubleQuote`,
-					Final: true,
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`DoubleQuote`},
+					Final:  true,
 				},
+				// TODO: list of valid tokens
 				{
 					Type: HINT_TYPE_TOKEN,
 					//Name: `Generic`,
 					Many: true,
 				},
 				{
-					Type: HINT_TYPE_TOKEN,
-					Name: `DoubleQuote`,
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`DoubleQuote`},
 				},
 			},
 			//AllowedElements: []string{"Variable", "SubshellCapture", "Subshell", "SubshellBacktick", "Generic"},

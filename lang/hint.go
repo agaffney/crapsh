@@ -10,9 +10,10 @@ const (
 
 type ParserHint struct {
 	Type     int
-	Name     string // Name of element or token to match
-	Optional bool   // Hint is optional
-	Many     bool   // Hint can match multiple times
-	Final    bool   // Consider the element matched if this hint matches
-	Members  []*ParserHint
+	Name     string        // Name of element or token to match
+	Optional bool          // Hint is optional
+	Many     bool          // Hint can match multiple times
+	Final    bool          // Consider the element matched if this hint matches
+	Tokens   []string      // List of token names to match (for TOKEN type)
+	Members  []*ParserHint // Child parser hints (used by ANY/GROUP hint types)
 }

@@ -122,6 +122,6 @@ var TokenDefinitions = []TokenDefinition{
 	// Backslash followed by any character
 	{Name: `Escape`, Type: TYPE_REGEXP, Pattern: `\\.`},
 	// Letter or underscore followed by any number of letters, numbers, or underscores
-	{Name: `Identifier`, Type: TYPE_REGEXP, Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
+	{Name: `GenericIdentifier`, Type: TYPE_REGEXP, Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
 	{Name: `Generic`, Type: TYPE_MATCHALL, MatchUntilNextToken: true},
 }

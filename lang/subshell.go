@@ -12,9 +12,9 @@ func init() {
 							Type: HINT_TYPE_GROUP,
 							Members: []*ParserHint{
 								{
-									Type:  HINT_TYPE_TOKEN,
-									Name:  `SubshellCaptureOpen`,
-									Final: true,
+									Type:   HINT_TYPE_TOKEN,
+									Tokens: []string{`SubshellCaptureOpen`},
+									Final:  true,
 								},
 								{
 									Type: HINT_TYPE_ELEMENT,
@@ -22,8 +22,8 @@ func init() {
 									Many: true,
 								},
 								{
-									Type: HINT_TYPE_TOKEN,
-									Name: `ParenClose`,
+									Type:   HINT_TYPE_TOKEN,
+									Tokens: []string{`ParenClose`},
 								},
 							},
 						},
@@ -31,9 +31,9 @@ func init() {
 							Type: HINT_TYPE_GROUP,
 							Members: []*ParserHint{
 								{
-									Type:  HINT_TYPE_TOKEN,
-									Name:  `Backtick`,
-									Final: true,
+									Type:   HINT_TYPE_TOKEN,
+									Tokens: []string{`Backtick`},
+									Final:  true,
 								},
 								{
 									Type: HINT_TYPE_ELEMENT,
@@ -42,8 +42,8 @@ func init() {
 									Many: true,
 								},
 								{
-									Type: HINT_TYPE_TOKEN,
-									Name: `Backtick`,
+									Type:   HINT_TYPE_TOKEN,
+									Tokens: []string{`Backtick`},
 								},
 							},
 						},
@@ -58,8 +58,8 @@ func init() {
 					Type: HINT_TYPE_GROUP,
 					Members: []*ParserHint{
 						{
-							Type: HINT_TYPE_TOKEN,
-							Name: `ParenOpen`,
+							Type:   HINT_TYPE_TOKEN,
+							Tokens: []string{`ParenOpen`},
 						},
 						{
 							Type: HINT_TYPE_ELEMENT,
@@ -67,8 +67,8 @@ func init() {
 							Many: true,
 						},
 						{
-							Type: HINT_TYPE_TOKEN,
-							Name: `ParenClose`,
+							Type:   HINT_TYPE_TOKEN,
+							Tokens: []string{`ParenClose`},
 						},
 					},
 				},

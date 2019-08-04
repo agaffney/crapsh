@@ -15,9 +15,9 @@ func init() {
 					Optional: true,
 					Members: []*ParserHint{
 						{
-							Type:  HINT_TYPE_TOKEN,
-							Name:  `Pipe`,
-							Final: true,
+							Type:   HINT_TYPE_TOKEN,
+							Tokens: []string{`Pipe`},
+							Final:  true,
 						},
 						{
 							Type: HINT_TYPE_ELEMENT,
@@ -44,19 +44,11 @@ func init() {
 						},
 					},
 				},
+				// TODO: move to FullCommand
 				{
-					Type:     HINT_TYPE_ANY,
+					Type:     HINT_TYPE_TOKEN,
+					Tokens:   []string{`Newline`, `Semicolon`},
 					Optional: true,
-					Members: []*ParserHint{
-						{
-							Type: HINT_TYPE_TOKEN,
-							Name: `Newline`,
-						},
-						{
-							Type: HINT_TYPE_TOKEN,
-							Name: `Semicolon`,
-						},
-					},
 				},
 			},
 		},
@@ -89,17 +81,19 @@ func init() {
 				},
 				{
 					Type:     HINT_TYPE_TOKEN,
-					Name:     `Whitespace`,
+					Tokens:   []string{`Whitespace`},
 					Optional: true,
 				},
 			},
 		},
+		// TODO: specify list of tokens
 		{
 			Name: `Generic`,
 			ParserData: []*ParserHint{
 				{
 					Type: HINT_TYPE_TOKEN,
 					//Name: `Generic`,
+					Tokens: []string{`Generic`, `GenericIdentifier`},
 				},
 			},
 		},
