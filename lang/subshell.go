@@ -3,51 +3,41 @@ package lang
 func init() {
 	registerElements([]*ElementEntry{
 		{
-			Name: `SubshellCapture`,
+			Name: `SubshellCaptureParens`,
 			ParserData: []*ParserHint{
 				{
-					Type: HINT_TYPE_ANY,
-					Members: []*ParserHint{
-						{
-							Type: HINT_TYPE_GROUP,
-							Members: []*ParserHint{
-								{
-									Type:   HINT_TYPE_TOKEN,
-									Tokens: []string{`SubshellCaptureOpen`},
-									Final:  true,
-								},
-								{
-									Type: HINT_TYPE_ELEMENT,
-									Name: `FullCommand`,
-									Many: true,
-								},
-								{
-									Type:   HINT_TYPE_TOKEN,
-									Tokens: []string{`ParenClose`},
-								},
-							},
-						},
-						{
-							Type: HINT_TYPE_GROUP,
-							Members: []*ParserHint{
-								{
-									Type:   HINT_TYPE_TOKEN,
-									Tokens: []string{`Backtick`},
-									Final:  true,
-								},
-								{
-									Type: HINT_TYPE_ELEMENT,
-									// TODO: Use variation of FullCommand that won't allow a backtick subshell
-									Name: `FullCommand`,
-									Many: true,
-								},
-								{
-									Type:   HINT_TYPE_TOKEN,
-									Tokens: []string{`Backtick`},
-								},
-							},
-						},
-					},
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`SubshellCaptureOpen`},
+					Final:  true,
+				},
+				{
+					Type: HINT_TYPE_ELEMENT,
+					Name: `FullCommand`,
+					Many: true,
+				},
+				{
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`ParenClose`},
+				},
+			},
+		},
+		{
+			Name: `SubshellCaptureBackticks`,
+			ParserData: []*ParserHint{
+				{
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`Backtick`},
+					Final:  true,
+				},
+				{
+					Type: HINT_TYPE_ELEMENT,
+					// TODO: Use variation of FullCommand that won't allow a backtick subshell
+					Name: `FullCommand`,
+					Many: true,
+				},
+				{
+					Type:   HINT_TYPE_TOKEN,
+					Tokens: []string{`Backtick`},
 				},
 			},
 		},
