@@ -1,20 +1,23 @@
 package parser
 
 import (
-	"bufio"
+	//"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"github.com/agaffney/crapsh/lang"
+	parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/parser/lexer"
-	"github.com/agaffney/crapsh/util"
+	//"github.com/agaffney/crapsh/util"
 	"io"
+	"log"
 )
 
 var ERR_FOUND_PARENT_END_TOKEN = errors.New("found parent end token")
 
 type Parser struct {
-	input       *bufio.Reader
+	//input       *bufio.Reader
+	input       parser_input.Input
 	stack       *Stack
 	buf         *bytes.Buffer
 	tokenBuf    []*lexer.Token
@@ -38,31 +41,47 @@ func (p *Parser) Reset() {
 	p.lexer.Reset()
 }
 
-func (p *Parser) Parse(input io.Reader) {
+func (p *Parser) Parse(input parser_input.Input) {
 	p.Reset()
 	p.lexer.Start(input)
-	p.tokenBuf = make([]*lexer.Token, 0)
-	p.tokenIdx = -1
-	go func() {
-		for {
-			// Reset the hint stack
-			p.stack.Reset()
-			// Start parsing with "root" element
-			ok, err := p.parseElement("Root", true)
-			if err != nil {
-				p.errorChan <- err
-				close(p.errorChan)
-				break
-			}
-			// EOF
-			if !ok {
-				break
+	for {
+		token, err := p.lexer.NextToken()
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal(err)
 			}
 		}
-		close(p.commandChan)
-	}()
+		if token == nil {
+			break
+		}
+		fmt.Printf("token = %#v\n", token)
+	}
+	return
+	/*
+		p.tokenBuf = make([]*lexer.Token, 0)
+		p.tokenIdx = -1
+		go func() {
+			for {
+				// Reset the hint stack
+				p.stack.Reset()
+				// Start parsing with "root" element
+				ok, err := p.parseElement("Root", true)
+				if err != nil {
+					p.errorChan <- err
+					close(p.errorChan)
+					break
+				}
+				// EOF
+				if !ok {
+					break
+				}
+			}
+			close(p.commandChan)
+		}()
+	*/
 }
 
+/*
 func (p *Parser) GetError() error {
 	select {
 	case err := <-p.errorChan:
@@ -71,6 +90,7 @@ func (p *Parser) GetError() error {
 		return nil
 	}
 }
+*/
 
 func (p *Parser) GetCommand() *lang.Element {
 	cmd := <-p.commandChan
@@ -81,6 +101,7 @@ func (p *Parser) GetCommand() *lang.Element {
 	}
 }
 
+/*
 // Handles an individual parser hint
 func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 	//util.DumpObject(hint, "parseHandleHint(): hint = ")
@@ -271,6 +292,7 @@ func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 	}
 	return false, nil
 }
+*/
 
 func (p *Parser) getTokenIdx() int {
 	return p.tokenIdx

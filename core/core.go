@@ -1,14 +1,16 @@
 package core
 
 import (
-	"bytes"
+	//"bytes"
 	"fmt"
+	core_input "github.com/agaffney/crapsh/core/input"
 	"github.com/agaffney/crapsh/parser"
+	//parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/util"
-	"github.com/chzyer/readline"
-	"io"
+	//"github.com/chzyer/readline"
+	//"io"
 	"os"
-	"strings"
+	//"strings"
 )
 
 type State struct {
@@ -23,47 +25,52 @@ func New(config *Config) *State {
 
 func (state *State) Start() {
 	if state.config.CommandProvided {
-		state.parser.Parse(strings.NewReader(state.config.Command))
+		input := core_input.NewCmdline(state.config.Command)
+		state.parser.Parse(input)
 		state.processCommands()
-	} else if state.config.FileProvided && !state.config.ReadFromStdin {
-		file, err := os.Open(state.config.File)
-		if err != nil {
-			fmt.Printf("%s: %s\n", state.config.Binary, err)
-		}
-		state.config.Binary = state.config.File
-		state.parser.Parse(file)
-		state.processCommands()
-	} else {
-		rl, err := readline.NewEx(&readline.Config{
-			Prompt:      "\033[31m»\033[0m ",
-			HistoryFile: "/tmp/readline.tmp",
-			//AutoComplete:    completer,
-			InterruptPrompt: "^C",
-			EOFPrompt:       "exit",
-
-			HistorySearchFold: true,
-			//FuncFilterInputRune: filterInput,
-		})
-		if err != nil {
-			panic(err)
-		}
-		defer rl.Close()
-		for {
-			line, err := rl.Readline()
-			if err == readline.ErrInterrupt {
-				if len(line) == 0 {
-					break
-				} else {
-					continue
+		/*
+			} else if state.config.FileProvided && !state.config.ReadFromStdin {
+				// TODO: move to core/input/file.go
+				file, err := os.Open(state.config.File)
+				if err != nil {
+					fmt.Printf("%s: %s\n", state.config.Binary, err)
 				}
-			} else if err == io.EOF {
-				break
-			}
-			fmt.Println(line)
-			buf := bytes.NewBufferString(line)
-			state.parser.Parse(buf)
-			state.processCommands()
-		}
+				state.config.Binary = state.config.File
+				state.parser.Parse(file)
+				state.processCommands()
+			} else {
+				// TODO: move to core/input/interactive.go
+				rl, err := readline.NewEx(&readline.Config{
+					Prompt:      "\033[31m»\033[0m ",
+					HistoryFile: "/tmp/readline.tmp",
+					//AutoComplete:    completer,
+					InterruptPrompt: "^C",
+					EOFPrompt:       "exit",
+
+					HistorySearchFold: true,
+					//FuncFilterInputRune: filterInput,
+				})
+				if err != nil {
+					panic(err)
+				}
+				defer rl.Close()
+				for {
+					line, err := rl.Readline()
+					if err == readline.ErrInterrupt {
+						if len(line) == 0 {
+							break
+						} else {
+							continue
+						}
+					} else if err == io.EOF {
+						break
+					}
+					fmt.Println(line)
+					buf := bytes.NewBufferString(line)
+					state.parser.Parse(buf)
+					state.processCommands()
+				}
+		*/
 	}
 	os.Exit(0)
 }
@@ -77,8 +84,10 @@ func (state *State) processCommands() {
 		}
 		util.DumpJson(cmd, "Command:\n")
 	}
-	if err := state.parser.GetError(); err != nil {
-		fmt.Printf("%s: %s\n", state.config.Binary, err)
-		os.Exit(1)
-	}
+	/*
+		if err := state.parser.GetError(); err != nil {
+			fmt.Printf("%s: %s\n", state.config.Binary, err)
+			os.Exit(1)
+		}
+	*/
 }

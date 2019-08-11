@@ -1,24 +1,25 @@
 package lexer
 
 import (
-	"bufio"
 	"bytes"
+	parser_input "github.com/agaffney/crapsh/parser/input"
 	"io"
 )
 
 const BUF_THRESHOLD = 1024
 
 type Lexer struct {
-	buf        *bytes.Buffer
-	tokenChan  chan *Token
-	errorChan  chan error
-	input      *bufio.Reader
+	buf       *bytes.Buffer
+	tokenChan chan *Token
+	errorChan chan error
+	//input      *bufio.Reader
+	input      parser_input.Input
 	lineNum    int
 	lineOffset int
 }
 
 type Token struct {
-	Type    string
+	Type    int
 	LineNum int
 	Offset  int
 	Value   string
@@ -39,9 +40,11 @@ func (l *Lexer) Reset() {
 	l.lineOffset = 1
 }
 
-func (l *Lexer) Start(input io.Reader) {
-	l.input = bufio.NewReader(input)
-	go l.generateTokens()
+func (l *Lexer) Start(input parser_input.Input) {
+	l.input = input
+	line, _ := input.ReadLine()
+	l.buf.WriteString(line)
+	//go l.generateTokens()
 }
 
 func (l *Lexer) GetError() error {
@@ -64,14 +67,14 @@ func (l *Lexer) ReadToken() *Token {
 
 // Return a single character (rune) from the buffer
 func (l *Lexer) nextRune() (rune, error) {
-	r, _, err := l.input.ReadRune()
+	r, _, err := l.buf.ReadRune()
 	l.lineOffset++
 	return r, err
 }
 
 // Rewind buffer position by one character (rune)
 func (l *Lexer) unreadRune() error {
-	err := l.input.UnreadRune()
+	err := l.buf.UnreadRune()
 	l.lineOffset--
 	return err
 }
@@ -83,7 +86,7 @@ func (l *Lexer) nextLine() {
 }
 
 // Scan input buffer for a matching token
-func (l *Lexer) generateTokens() {
+func (l *Lexer) generateTokens_old() {
 	var token *Token
 	for {
 		// Check the buffer at the beginning to catch tokens already in the buffer
@@ -91,7 +94,8 @@ func (l *Lexer) generateTokens() {
 		if l.buf.Len() > 0 {
 			for _, foo := range TokenDefinitions {
 				if ok, value := foo.Match(l.buf, 0); ok {
-					token = &Token{Type: foo.Name, Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
+					//token = &Token{Type: foo.Name, Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
+					token = &Token{Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
 					l.lineOffset += len(value)
 					if len(value) == len(l.buf.String()) {
 						l.buf.Reset()
@@ -108,7 +112,8 @@ func (l *Lexer) generateTokens() {
 		}
 		if l.buf.Len() < BUF_THRESHOLD {
 			for i := 0; i < BUF_THRESHOLD; i++ {
-				r, _, err := l.input.ReadRune()
+				//r, _, err := l.input.ReadRune()
+				r, _, err := l.buf.ReadRune()
 				if err != nil {
 					if err != io.EOF {
 						l.errorChan <- err
