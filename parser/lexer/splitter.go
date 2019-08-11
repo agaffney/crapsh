@@ -20,10 +20,14 @@ func (l *Lexer) NextToken() (*Token, error) {
 		if curDelimRule.AllowOperators {
 			for _, op := range rules.OperatorRules {
 				if len(buf_string) >= len(op.Pattern) && buf_string[:len(op.Pattern)] == op.Pattern {
+					if len(token.Value) > 0 {
+						return token, nil
+					}
 					token.Value = op.Pattern
 					token.Type = op.TokenType
 					// Remove operator from buffer
 					l.buf = bytes.NewBufferString(buf_string[len(op.Pattern):])
+					l.lineOffset += len(op.Pattern)
 					return token, nil
 				}
 			}
