@@ -12,11 +12,18 @@ type DelimeterRule struct {
 }
 
 var DelimeterRules = []DelimeterRule{
-	{Name: `Word`, DelimEnd: ` `, ReturnToken: true, AllowOperators: true, AllowedRules: []string{`SingleQuotes`, `DoubleQuotes`, `Subshell`, `SubshellBackticks`}},
+	{
+		Name:           `Word`,
+		DelimEnd:       ` `,
+		ReturnToken:    true,
+		AllowOperators: true,
+		AllowedRules:   []string{`SingleQuotes`, `DoubleQuotes`, `Subshell`, `SubshellBackticks`, `Arithmetic`},
+	},
 	{Name: `SingleQuotes`, DelimStart: `'`, DelimEnd: `'`, IgnoreEscapes: true, IncludeDelim: true},
 	{Name: `DoubleQuotes`, DelimStart: `"`, DelimEnd: `"`, IncludeDelim: true, AllowedRules: []string{}},
 	{Name: `Subshell`, DelimStart: `$(`, DelimEnd: `)`, IncludeDelim: true, AllowedRules: []string{}},
 	{Name: `SubshellBackticks`, DelimStart: "`", DelimEnd: "`", IncludeDelim: true, AllowedRules: []string{}},
+	{Name: `Arithmetic`, DelimStart: `$((`, DelimEnd: `))`, IncludeDelim: true},
 }
 
 func GetDelimeterRule(name string) *DelimeterRule {

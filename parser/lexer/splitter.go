@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-func (l *Lexer) checkForOperator(value string, startsWith bool) int {
+func (l *Lexer) checkForOperators(value string, startsWith bool) int {
 	for _, op := range rules.OperatorRules {
 		var opLen int
 		if startsWith {
@@ -30,6 +30,52 @@ func (l *Lexer) checkForOperator(value string, startsWith bool) int {
 		}
 	}
 	return -1
+}
+
+func (l *Lexer) checkForDelimeterStart(value string, rule *rules.DelimeterRule, startsWith bool) bool {
+	var delimLen int
+	if startsWith {
+		// Use the smaller of the value length and the delimeter length
+		delimLen = len(value)
+		if len(rule.DelimStart) < len(value) {
+			delimLen = len(rule.DelimStart)
+		}
+	} else {
+		// Use the delimeter length, since we're looking for an exact match
+		delimLen = len(rule.DelimStart)
+		// No match if our value is smaller than our delimeter
+		if len(value) < delimLen {
+			return false
+		}
+	}
+	if value[:delimLen] == rule.DelimStart[:delimLen] {
+		return true
+	}
+
+	return false
+}
+
+func (l *Lexer) checkForDelimeterEnd(value string, rule *rules.DelimeterRule, startsWith bool) bool {
+	var delimLen int
+	if startsWith {
+		// Use the smaller of the value length and the delimeter length
+		delimLen = len(value)
+		if len(rule.DelimEnd) < len(value) {
+			delimLen = len(rule.DelimEnd)
+		}
+	} else {
+		// Use the delimeter length, since we're looking for an exact match
+		delimLen = len(rule.DelimEnd)
+		// No match if our value is smaller than our delimeter
+		if len(value) < delimLen {
+			return false
+		}
+	}
+	if value[:delimLen] == rule.DelimEnd[:delimLen] {
+		return true
+	}
+
+	return false
 }
 
 // Tokenize the input per the POSIX spec
@@ -63,7 +109,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 		if curDelimRule.AllowOperators {
 			if !processingOperator {
 				// Check if current rune starts an operator
-				if tokenType := l.checkForOperator(string(c), true); tokenType != -1 {
+				if tokenType := l.checkForOperators(string(c), true); tokenType != -1 {
 					if len(token.Value) > 0 {
 						// Return rune to the buffer
 						l.unreadRune()
@@ -76,7 +122,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 		token.Value += string(c)
 		if processingOperator {
 			// Check if current token value still matches an operator
-			tokenType := l.checkForOperator(token.Value, false)
+			tokenType := l.checkForOperators(token.Value, false)
 			if tokenType == -1 {
 				// Return last rune to the buffer and return operator token
 				l.unreadRune()
@@ -94,7 +140,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 			}
 		*/
 		ruleMatched := false
-		// TODO: check for opening delimeter by start character like with operators
+		// TODO: check for opening delimeter by start character like with operators in order to handle escapes
 		for _, ruleName := range curDelimRule.AllowedRules {
 			rule := rules.GetDelimeterRule(ruleName)
 			if len(token.Value) >= len(rule.DelimStart) && token.Value[len(token.Value)-len(rule.DelimStart):] == rule.DelimStart {
