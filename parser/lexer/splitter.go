@@ -2,10 +2,22 @@ package lexer
 
 import (
 	//"bytes"
-	"fmt"
 	"github.com/agaffney/crapsh/parser/rules"
 	"io"
 )
+
+func (l *Lexer) checkForEscape(value string) bool {
+	escapeFound := false
+	valueLen := len(value)
+	for i := 0; i < valueLen; i++ {
+		if value[valueLen-i-1] == '\\' {
+			escapeFound = !escapeFound
+		} else {
+			break
+		}
+	}
+	return escapeFound
+}
 
 func (l *Lexer) checkForOperators(value string, startsWith bool) int {
 	for _, op := range rules.OperatorRules {
@@ -32,47 +44,19 @@ func (l *Lexer) checkForOperators(value string, startsWith bool) int {
 	return -1
 }
 
-func (l *Lexer) checkForDelimeterStart(value string, rule *rules.DelimeterRule, startsWith bool) bool {
-	var delimLen int
-	if startsWith {
-		// Use the smaller of the value length and the delimeter length
-		delimLen = len(value)
-		if len(rule.DelimStart) < len(value) {
-			delimLen = len(rule.DelimStart)
-		}
-	} else {
-		// Use the delimeter length, since we're looking for an exact match
-		delimLen = len(rule.DelimStart)
-		// No match if our value is smaller than our delimeter
-		if len(value) < delimLen {
-			return false
-		}
+func (l *Lexer) checkForDelimeter(value string, delim string) bool {
+	delimLen := len(delim)
+	valueLen := len(value)
+	// No match if our value is smaller than our delimeter
+	if valueLen < delimLen {
+		return false
 	}
-	if value[:delimLen] == rule.DelimStart[:delimLen] {
-		return true
-	}
-
-	return false
-}
-
-func (l *Lexer) checkForDelimeterEnd(value string, rule *rules.DelimeterRule, startsWith bool) bool {
-	var delimLen int
-	if startsWith {
-		// Use the smaller of the value length and the delimeter length
-		delimLen = len(value)
-		if len(rule.DelimEnd) < len(value) {
-			delimLen = len(rule.DelimEnd)
+	// Check if value ends with specified delimeter
+	if value[valueLen-delimLen:] == delim {
+		// Check for unescaped escape preceeding the delimeter
+		if !l.checkForEscape(value[:valueLen-delimLen]) {
+			return true
 		}
-	} else {
-		// Use the delimeter length, since we're looking for an exact match
-		delimLen = len(rule.DelimEnd)
-		// No match if our value is smaller than our delimeter
-		if len(value) < delimLen {
-			return false
-		}
-	}
-	if value[:delimLen] == rule.DelimEnd[:delimLen] {
-		return true
 	}
 
 	return false
@@ -84,8 +68,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 	token := &Token{}
 	delimRuleStack := []*rules.DelimeterRule{rules.GetDelimeterRule(`Word`)}
 	processingOperator := false
-	//processingDelimeter := false
-	//escapeFound := false
+	escapeFound := false
 	for {
 		// Reset token line/offset if there's no value yet
 		if len(token.Value) == 0 {
@@ -106,7 +89,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 				return nil, err
 			}
 		}
-		if curDelimRule.AllowOperators {
+		if curDelimRule.AllowOperators && !escapeFound {
 			if !processingOperator {
 				// Check if current rune starts an operator
 				if tokenType := l.checkForOperators(string(c), true); tokenType != -1 {
@@ -119,6 +102,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 				}
 			}
 		}
+		// Add rune to current token value
 		token.Value += string(c)
 		if processingOperator {
 			// Check if current token value still matches an operator
@@ -133,29 +117,29 @@ func (l *Lexer) NextToken() (*Token, error) {
 				token.Type = tokenType
 			}
 		}
-		/*
-			if !curDelimRule.IgnoreEscapes && c == '\\' {
-				escapeFound = !escapeFound
-				continue
-			}
-		*/
+		if !curDelimRule.IgnoreEscapes && c == '\\' {
+			escapeFound = !escapeFound
+			continue
+		}
+		escapeFound = false
 		ruleMatched := false
 		// TODO: check for opening delimeter by start character like with operators in order to handle escapes
 		for _, ruleName := range curDelimRule.AllowedRules {
 			rule := rules.GetDelimeterRule(ruleName)
-			if len(token.Value) >= len(rule.DelimStart) && token.Value[len(token.Value)-len(rule.DelimStart):] == rule.DelimStart {
+			//if len(token.Value) >= len(rule.DelimStart) && token.Value[len(token.Value)-len(rule.DelimStart):] == rule.DelimStart {
+			if l.checkForDelimeter(token.Value, rule.DelimStart) {
 				// Add delimeter rule to stack
 				delimRuleStack = append(delimRuleStack, rule)
 				ruleMatched = true
-				fmt.Printf("delimeter rule start: token.Value = '%s', rule = %#v\n", token.Value, rule)
 				break
 			}
 		}
 		if ruleMatched {
-			//escapeFound = false
+			escapeFound = false
 			continue
 		}
-		if len(token.Value) >= len(curDelimRule.DelimEnd) && string(token.Value[len(token.Value)-len(curDelimRule.DelimEnd)]) == curDelimRule.DelimEnd {
+		//if len(token.Value) >= len(curDelimRule.DelimEnd) && string(token.Value[len(token.Value)-len(curDelimRule.DelimEnd)]) == curDelimRule.DelimEnd {
+		if l.checkForDelimeter(token.Value, curDelimRule.DelimEnd) {
 			if !curDelimRule.IncludeDelim {
 				if len(token.Value) > 0 {
 					// Remove delimeter from token
@@ -171,7 +155,6 @@ func (l *Lexer) NextToken() (*Token, error) {
 			}
 			// Remove current delimeter rule from the stack
 			delimRuleStack = delimRuleStack[:len(delimRuleStack)-1]
-			fmt.Printf("delimeter rule end: token.Value = '%s', rule = %#v\n", token.Value, curDelimRule)
 		}
 	}
 	return token, nil
