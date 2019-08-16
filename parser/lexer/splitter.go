@@ -44,7 +44,7 @@ func (l *Lexer) checkForOperators(value string, startsWith bool) int {
 	return -1
 }
 
-func (l *Lexer) checkForDelimeter(value string, delim string) bool {
+func (l *Lexer) checkForDelimeter(value string, delim string, ignoreEscapes bool) bool {
 	delimLen := len(delim)
 	valueLen := len(value)
 	// No match if our value is smaller than our delimeter
@@ -54,7 +54,7 @@ func (l *Lexer) checkForDelimeter(value string, delim string) bool {
 	// Check if value ends with specified delimeter
 	if value[valueLen-delimLen:] == delim {
 		// Check for unescaped escape preceeding the delimeter
-		if !l.checkForEscape(value[:valueLen-delimLen]) {
+		if ignoreEscapes || !l.checkForEscape(value[:valueLen-delimLen]) {
 			return true
 		}
 	}
@@ -127,7 +127,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 		for _, ruleName := range curDelimRule.AllowedRules {
 			rule := rules.GetDelimeterRule(ruleName)
 			//if len(token.Value) >= len(rule.DelimStart) && token.Value[len(token.Value)-len(rule.DelimStart):] == rule.DelimStart {
-			if l.checkForDelimeter(token.Value, rule.DelimStart) {
+			if l.checkForDelimeter(token.Value, rule.DelimStart, curDelimRule.IgnoreEscapes) {
 				// Add delimeter rule to stack
 				delimRuleStack = append(delimRuleStack, rule)
 				ruleMatched = true
@@ -139,7 +139,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 			continue
 		}
 		//if len(token.Value) >= len(curDelimRule.DelimEnd) && string(token.Value[len(token.Value)-len(curDelimRule.DelimEnd)]) == curDelimRule.DelimEnd {
-		if l.checkForDelimeter(token.Value, curDelimRule.DelimEnd) {
+		if l.checkForDelimeter(token.Value, curDelimRule.DelimEnd, curDelimRule.IgnoreEscapes) {
 			if !curDelimRule.IncludeDelim {
 				if len(token.Value) > 0 {
 					// Remove delimeter from token
