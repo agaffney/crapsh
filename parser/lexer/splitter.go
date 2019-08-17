@@ -5,6 +5,7 @@ import (
 	"github.com/agaffney/crapsh/parser/rules"
 	"github.com/agaffney/crapsh/parser/tokens"
 	"io"
+	"strconv"
 )
 
 func (l *Lexer) generateTokens() {
@@ -37,7 +38,7 @@ func (l *Lexer) checkForEscape(value string) bool {
 	return escapeFound
 }
 
-func (l *Lexer) checkForOperators(value string, startsWith bool) int {
+func (l *Lexer) checkForOperators(value string, startsWith bool) (int, bool) {
 	for _, op := range rules.OperatorRules {
 		var opLen int
 		if startsWith {
@@ -56,10 +57,10 @@ func (l *Lexer) checkForOperators(value string, startsWith bool) int {
 		}
 		// Return operator token type if there's a match
 		if value[:opLen] == op.Pattern[:opLen] {
-			return op.TokenType
+			return op.TokenType, op.IoNumber
 		}
 	}
-	return -1
+	return -1, false
 }
 
 func (l *Lexer) checkForDelimeter(value string, delim string, ignoreEscapes bool) bool {
@@ -121,8 +122,13 @@ func (l *Lexer) nextToken() (*Token, error) {
 		// Check for start of operator
 		if curDelimRule.AllowOperators && !escapeFound {
 			if !processingOperator {
-				if tokenType := l.checkForOperators(string(c), true); tokenType != -1 {
+				if tokenType, ioNumber := l.checkForOperators(string(c), true); tokenType != -1 {
 					if len(token.Value) > 0 {
+						if ioNumber {
+							if _, err := strconv.Atoi(token.Value); err == nil {
+								token.Type = tokens.TOKEN_IO_NUMBER
+							}
+						}
 						// Return rune to the buffer
 						l.unreadRune()
 						return token, nil
@@ -178,7 +184,7 @@ func (l *Lexer) nextToken() (*Token, error) {
 		token.Value += string(c)
 		if processingOperator {
 			// Check if current token value still matches an operator
-			tokenType := l.checkForOperators(token.Value, false)
+			tokenType, _ := l.checkForOperators(token.Value, false)
 			if tokenType == -1 {
 				// Return last rune to the buffer and return operator token
 				l.unreadRune()

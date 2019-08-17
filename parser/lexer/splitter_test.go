@@ -139,3 +139,19 @@ func TestSplitterContinuation(t *testing.T) {
 	}
 	runTests(test_cases, t)
 }
+
+func TestSplitterIoNumber(t *testing.T) {
+	test_cases := []splitterTestCase{
+		{
+			input: `echo foo 2>&1`,
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_IO_NUMBER, value: `2`},
+				{token: tokens.TOKEN_GREATAND, value: `>&`},
+				{token: tokens.TOKEN_NULL, value: `1`},
+			},
+		},
+	}
+	runTests(test_cases, t)
+}
