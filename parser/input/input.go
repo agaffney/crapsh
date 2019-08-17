@@ -6,8 +6,7 @@ import (
 )
 
 type Input interface {
-	ReadLine() (string, error)
-	ReadAnotherLine() (string, error)
+	ReadLine(bool) (string, error)
 }
 
 type StringParserInput struct {
@@ -20,10 +19,6 @@ func NewStringParserInput(input string) *StringParserInput {
 	return i
 }
 
-func (i *StringParserInput) ReadLine() (string, error) {
-	return i.input.ReadString('\n')
-}
-
-func (i *StringParserInput) ReadAnotherLine() (string, error) {
+func (i *StringParserInput) ReadLine(continuation bool) (string, error) {
 	return i.input.ReadString('\n')
 }

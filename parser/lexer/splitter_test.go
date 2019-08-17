@@ -36,7 +36,7 @@ func TestSplitter(t *testing.T) {
 				{token: tokens.TOKEN_NEWLINE, value: "\n"},
 				{token: tokens.TOKEN_NULL, value: `abc`},
 				{token: tokens.TOKEN_NULL, value: `"123 456"`},
-				{token: tokens.TOKEN_NULL, value: `'d\nef'`},
+				{token: tokens.TOKEN_NULL, value: "'d\nef'"},
 				{token: tokens.TOKEN_NULL, value: `789`},
 			},
 		},
@@ -50,11 +50,21 @@ func TestSplitter(t *testing.T) {
 			token, err := lexer.NextToken()
 			if err != nil {
 				if err == io.EOF {
-					// TODO: handle reading multiple lines
-					if idx < len(test_case.output)-1 {
-						t.Fatalf("Encountered unexpected EOF")
+					// Read additional line
+					err2 := lexer.readLine(false)
+					if err2 != nil {
+						if err2 == io.EOF {
+							if idx < len(test_case.output)-1 {
+								t.Fatalf("Encountered unexpected EOF")
+							}
+						} else {
+							t.Fatalf("Encountered unexpected error: %s", err2.Error())
+						}
 					}
-					break
+					// Read a new token if we didn't get one before
+					if token == nil {
+						token, _ = lexer.NextToken()
+					}
 				} else {
 					t.Fatalf("Unexpected error: %s", err.Error())
 				}

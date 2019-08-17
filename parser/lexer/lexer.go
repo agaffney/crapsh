@@ -41,9 +41,17 @@ func (l *Lexer) Reset() {
 
 func (l *Lexer) Start(input parser_input.Input) {
 	l.input = input
-	line, _ := input.ReadLine()
-	l.buf.WriteString(line)
+	// TODO: check for error
+	l.readLine(false)
 	//go l.generateTokens()
+}
+
+func (l *Lexer) readLine(continuation bool) error {
+	line, err := l.input.ReadLine(continuation)
+	if line != "" {
+		l.buf.WriteString(line)
+	}
+	return err
 }
 
 func (l *Lexer) GetError() error {

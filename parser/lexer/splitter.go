@@ -81,25 +81,33 @@ func (l *Lexer) NextToken() (*Token, error) {
 		c, err := l.nextRune()
 		if err != nil {
 			if err == io.EOF {
-				// Return the current token, if any
-				if len(token.Value) > 0 {
-					fmt.Printf("returning token from EOF: %#v\n", token)
-					return token, err
+				if curDelimRule.ReturnToken {
+					// Return the current token, if any
+					if len(token.Value) > 0 {
+						return token, err
+					} else {
+						return nil, err
+					}
 				} else {
-					return nil, err
+					// Read a continuation line if the current delimeter rule shouldn't
+					// return a token
+					err2 := l.readLine(true)
+					if err2 != nil {
+						return nil, fmt.Errorf("EOF while looking for delimeter `%s`", curDelimRule.DelimEnd)
+					}
+					continue
 				}
 			} else {
 				return nil, err
 			}
 		}
+		// Check for start of operator
 		if curDelimRule.AllowOperators && !escapeFound {
 			if !processingOperator {
-				// Check if current rune starts an operator
 				if tokenType := l.checkForOperators(string(c), true); tokenType != -1 {
 					if len(token.Value) > 0 {
 						// Return rune to the buffer
 						l.unreadRune()
-						fmt.Printf("returning token from operator start: %#v\n", token)
 						return token, nil
 					}
 					processingOperator = true
@@ -108,22 +116,33 @@ func (l *Lexer) NextToken() (*Token, error) {
 		}
 		// TODO: do something useful with \r
 		if c == '\n' {
+			// Increment line number
+			l.nextLine()
 			// Remove newline from input if it's escaped
 			if escapeFound {
 				escapeFound = false
-				// TODO: read another line
+				l.readLine(true)
 				continue
 			}
-			// Return any current token
-			if len(token.Value) > 0 {
-				l.unreadRune()
-				fmt.Printf("returned token from newline, prev token: %#v\n", token)
+			if curDelimRule.ReturnToken {
+				// Return any current token
+				if len(token.Value) > 0 {
+					l.unreadRune()
+					return token, nil
+				}
+				token.Type = tokens.TOKEN_NEWLINE
+				token.Value = string(c)
 				return token, nil
+			} else {
+				err2 := l.readLine(true)
+				if err2 != nil {
+					if err2 != io.EOF {
+						return nil, err2
+					}
+				}
+				token.Value += string(c)
+				continue
 			}
-			token.Type = tokens.TOKEN_NEWLINE
-			token.Value = string(c)
-			fmt.Printf("return newline token: %#v\n", token)
-			return token, nil
 		}
 		// Add rune to current token value
 		token.Value += string(c)
@@ -134,7 +153,6 @@ func (l *Lexer) NextToken() (*Token, error) {
 				// Return last rune to the buffer and return operator token
 				l.unreadRune()
 				token.Value = token.Value[:len(token.Value)-1]
-				fmt.Printf("returning token from operator end: %#v\n", token)
 				return token, nil
 			} else {
 				// Update token type with current best guess for operator
@@ -145,12 +163,12 @@ func (l *Lexer) NextToken() (*Token, error) {
 			escapeFound = !escapeFound
 			continue
 		}
+		// Reset escapeFound flag
 		escapeFound = false
+		// Check for delimeter start
 		ruleMatched := false
-		// TODO: check for opening delimeter by start character like with operators in order to handle escapes
 		for _, ruleName := range curDelimRule.AllowedRules {
 			rule := rules.GetDelimeterRule(ruleName)
-			//if len(token.Value) >= len(rule.DelimStart) && token.Value[len(token.Value)-len(rule.DelimStart):] == rule.DelimStart {
 			if l.checkForDelimeter(token.Value, rule.DelimStart, curDelimRule.IgnoreEscapes) {
 				// Add delimeter rule to stack
 				delimRuleStack = append(delimRuleStack, rule)
@@ -162,7 +180,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 			escapeFound = false
 			continue
 		}
-		//if len(token.Value) >= len(curDelimRule.DelimEnd) && string(token.Value[len(token.Value)-len(curDelimRule.DelimEnd)]) == curDelimRule.DelimEnd {
+		// Check for delimeter end
 		if l.checkForDelimeter(token.Value, curDelimRule.DelimEnd, curDelimRule.IgnoreEscapes) {
 			if !curDelimRule.IncludeDelim {
 				if len(token.Value) > 0 {
@@ -172,16 +190,13 @@ func (l *Lexer) NextToken() (*Token, error) {
 			}
 			if curDelimRule.ReturnToken {
 				if len(token.Value) > 0 {
-					fmt.Printf("returning token from delimeter end: %#v\n", token)
 					return token, nil
 				}
-				//escapeFound = true
 				continue
 			}
 			// Remove current delimeter rule from the stack
 			delimRuleStack = delimRuleStack[:len(delimRuleStack)-1]
 		}
 	}
-	fmt.Printf("return token from end of func: %#v\n", token)
 	return token, nil
 }

@@ -14,10 +14,6 @@ func NewCmdline(input string) *Cmdline {
 	return i
 }
 
-func (i *Cmdline) ReadLine() (string, error) {
-	return i.input.ReadString('\n')
-}
-
-func (i *Cmdline) ReadAnotherLine() (string, error) {
+func (i *Cmdline) ReadLine(continuation bool) (string, error) {
 	return i.input.ReadString('\n')
 }
