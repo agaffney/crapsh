@@ -1,7 +1,6 @@
 package parser
 
 import (
-	//"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -11,12 +10,12 @@ import (
 	//"github.com/agaffney/crapsh/util"
 	"io"
 	"log"
+	"os"
 )
 
 var ERR_FOUND_PARENT_END_TOKEN = errors.New("found parent end token")
 
 type Parser struct {
-	//input       *bufio.Reader
 	input       parser_input.Input
 	stack       *Stack
 	buf         *bytes.Buffer
@@ -46,15 +45,19 @@ func (p *Parser) Parse(input parser_input.Input) {
 	p.lexer.Start(input)
 	for {
 		token, err := p.lexer.NextToken()
+		fmt.Printf("token = %#v\n", token)
 		if err != nil {
-			if err != io.EOF {
+			if err == io.EOF {
+				if input.IsAvailable() {
+					// Restart the lexer to keep pulling from the input
+					p.lexer.Start(input)
+				} else {
+					os.Exit(0)
+				}
+			} else {
 				log.Fatal(err)
 			}
 		}
-		if token == nil {
-			break
-		}
-		fmt.Printf("token = %#v\n", token)
 	}
 	return
 	/*

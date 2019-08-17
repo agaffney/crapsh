@@ -7,6 +7,7 @@ import (
 
 type Input interface {
 	ReadLine(bool) (string, error)
+	IsAvailable() bool
 }
 
 type StringParserInput struct {
@@ -21,4 +22,8 @@ func NewStringParserInput(input string) *StringParserInput {
 
 func (i *StringParserInput) ReadLine(continuation bool) (string, error) {
 	return i.input.ReadString('\n')
+}
+
+func (i *StringParserInput) IsAvailable() bool {
+	return (i.input.Buffered() > 0)
 }

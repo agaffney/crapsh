@@ -17,3 +17,7 @@ func NewCmdline(input string) *Cmdline {
 func (i *Cmdline) ReadLine(continuation bool) (string, error) {
 	return i.input.ReadString('\n')
 }
+
+func (i *Cmdline) IsAvailable() bool {
+	return (i.input.Buffered() > 0)
+}

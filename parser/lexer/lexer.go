@@ -9,12 +9,13 @@ import (
 const BUF_THRESHOLD = 1024
 
 type Lexer struct {
-	buf        *bytes.Buffer
-	tokenChan  chan *Token
-	errorChan  chan error
-	input      parser_input.Input
-	lineNum    int
-	lineOffset int
+	buf            *bytes.Buffer
+	tokenChan      chan *Token
+	errorChan      chan error
+	input          parser_input.Input
+	lineNum        int
+	lineOffset     int
+	prevLineOffset int
 }
 
 type Token struct {
@@ -75,6 +76,8 @@ func (l *Lexer) ReadToken() *Token {
 // Return a single character (rune) from the buffer
 func (l *Lexer) nextRune() (rune, error) {
 	r, _, err := l.buf.ReadRune()
+	// Preserve previous line offset in case we need to unread a rune
+	l.prevLineOffset = l.lineOffset
 	l.lineOffset++
 	return r, err
 }
@@ -82,7 +85,10 @@ func (l *Lexer) nextRune() (rune, error) {
 // Rewind buffer position by one character (rune)
 func (l *Lexer) unreadRune() error {
 	err := l.buf.UnreadRune()
-	l.lineOffset--
+	if l.lineOffset == 0 {
+		l.lineNum--
+	}
+	l.lineOffset = l.prevLineOffset
 	return err
 }
 
