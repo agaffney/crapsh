@@ -86,7 +86,7 @@ func (l *Lexer) nextRune() (rune, error) {
 // Rewind buffer position by one character (rune)
 func (l *Lexer) unreadRune() error {
 	err := l.buf.UnreadRune()
-	if l.lineOffset == 0 {
+	if l.lineOffset == 1 {
 		l.lineNum--
 	}
 	l.lineOffset = l.prevLineOffset
@@ -96,5 +96,5 @@ func (l *Lexer) unreadRune() error {
 // Increment line number for input
 func (l *Lexer) nextLine() {
 	l.lineNum++
-	l.lineOffset = 0
+	l.lineOffset = 1
 }

@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	//"bytes"
 	"fmt"
 	"github.com/agaffney/crapsh/parser/rules"
 	"github.com/agaffney/crapsh/parser/tokens"
@@ -11,6 +10,9 @@ import (
 func (l *Lexer) generateTokens() {
 	for {
 		token, err := l.nextToken()
+		if token != nil {
+			l.tokenChan <- token
+		}
 		if err != nil {
 			close(l.tokenChan)
 			if err == io.EOF {
@@ -19,7 +21,6 @@ func (l *Lexer) generateTokens() {
 				l.errorChan <- err
 			}
 		}
-		l.tokenChan <- token
 	}
 }
 
@@ -85,6 +86,7 @@ func (l *Lexer) nextToken() (*Token, error) {
 	token := &Token{}
 	delimRuleStack := []*rules.DelimeterRule{rules.GetDelimeterRule(`Word`)}
 	processingOperator := false
+	processingComment := false
 	escapeFound := false
 	for {
 		// Reset token line/offset if there's no value yet
@@ -131,6 +133,7 @@ func (l *Lexer) nextToken() (*Token, error) {
 		}
 		// TODO: do something useful with \r
 		if c == '\n' {
+			processingComment = false
 			// Increment line number
 			l.nextLine()
 			// Remove newline from input if it's escaped
@@ -158,6 +161,16 @@ func (l *Lexer) nextToken() (*Token, error) {
 				token.Value += string(c)
 				continue
 			}
+		}
+		// Discard all characters if we are processing a comment
+		if processingComment {
+			continue
+		}
+		// Check for comment start
+		// TODO: find better condition
+		if curDelimRule.ReturnToken && c == '#' {
+			processingComment = true
+			continue
 		}
 		// Add rune to current token value
 		token.Value += string(c)

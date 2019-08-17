@@ -40,6 +40,17 @@ func TestSplitter(t *testing.T) {
 				{token: tokens.TOKEN_NULL, value: `789`},
 			},
 		},
+		{
+			input: "echo foo bar#baz\necho foo #bar",
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_NULL, value: `bar`},
+				{token: tokens.TOKEN_NEWLINE, value: "\n"},
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+			},
+		},
 	}
 	lexer := New()
 	for _, test_case := range test_cases {
@@ -47,26 +58,27 @@ func TestSplitter(t *testing.T) {
 		input := parser_input.NewStringParserInput(test_case.input)
 		lexer.Start(input)
 		for idx, expected := range test_case.output {
-			token, err := lexer.NextToken()
+			token, err := lexer.ReadToken()
 			if err != nil {
 				if err == io.EOF {
-					// Read additional line
-					err2 := lexer.readLine(false)
-					if err2 != nil {
-						if err2 == io.EOF {
-							if idx < len(test_case.output)-1 {
-								t.Fatalf("Encountered unexpected EOF")
-							}
-						} else {
-							t.Fatalf("Encountered unexpected error: %s", err2.Error())
-						}
-					}
+					// Restart lexer to read another line
+					lexer.Start(input)
 					// Read a new token if we didn't get one before
 					if token == nil {
-						token, _ = lexer.NextToken()
+						var err2 error
+						token, err2 = lexer.ReadToken()
+						if err2 != nil {
+							if err2 == io.EOF {
+								if idx < len(test_case.output)-1 {
+									t.Fatalf("Encountered unexpected EOF")
+								}
+							} else {
+								t.Fatalf("Encountered unexpected error: %s", err2.Error())
+							}
+						}
 					}
 				} else {
-					t.Fatalf("Unexpected error: %s", err.Error())
+					t.Fatalf("Encountered unexpected error: %s", err.Error())
 				}
 			}
 			if token == nil {
@@ -76,7 +88,7 @@ func TestSplitter(t *testing.T) {
 				t.Fatalf("Expected token type %d with value `%s`, got token type %d with value `%s`", expected.token, expected.value, token.Type, token.Value)
 			}
 		}
-		token, err := lexer.NextToken()
+		token, err := lexer.ReadToken()
 		if err != nil && err != io.EOF {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
