@@ -16,7 +16,7 @@ func NewInteractive() *Interactive {
 		HistoryFile: "/tmp/readline.tmp",
 		//AutoComplete:    completer,
 		InterruptPrompt: "^C",
-		EOFPrompt:       "exit",
+		EOFPrompt:       "logout",
 
 		HistorySearchFold: true,
 		//FuncFilterInputRune: filterInput,
@@ -25,6 +25,7 @@ func NewInteractive() *Interactive {
 	if err != nil {
 		panic(err)
 	}
+	// TODO: figure out where to close the readline instance on exit
 	//defer rl.Close()
 	return i
 }

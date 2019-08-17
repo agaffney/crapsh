@@ -41,10 +41,11 @@ func (l *Lexer) Reset() {
 }
 
 func (l *Lexer) Start(input parser_input.Input) {
+	l.Reset()
 	l.input = input
 	// TODO: check for error
 	l.readLine(false)
-	//go l.generateTokens()
+	go l.generateTokens()
 }
 
 func (l *Lexer) readLine(continuation bool) error {
@@ -64,12 +65,12 @@ func (l *Lexer) GetError() error {
 	}
 }
 
-func (l *Lexer) ReadToken() *Token {
+func (l *Lexer) ReadToken() (*Token, error) {
 	t, ok := <-l.tokenChan
 	if ok {
-		return t
+		return t, nil
 	} else {
-		return nil
+		return nil, io.EOF
 	}
 }
 
@@ -96,50 +97,4 @@ func (l *Lexer) unreadRune() error {
 func (l *Lexer) nextLine() {
 	l.lineNum++
 	l.lineOffset = 0
-}
-
-// Scan input buffer for a matching token
-func (l *Lexer) generateTokens_old() {
-	var token *Token
-	for {
-		// Check the buffer at the beginning to catch tokens already in the buffer
-		// from the last iteration
-		if l.buf.Len() > 0 {
-			for _, foo := range TokenDefinitions {
-				if ok, value := foo.Match(l.buf, 0); ok {
-					//token = &Token{Type: foo.Name, Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
-					token = &Token{Value: value, LineNum: l.lineNum, Offset: l.lineOffset}
-					l.lineOffset += len(value)
-					if len(value) == len(l.buf.String()) {
-						l.buf.Reset()
-					} else {
-						l.buf = bytes.NewBufferString(l.buf.String()[len(value):])
-					}
-					if foo.AdvanceLine {
-						l.nextLine()
-					}
-					l.tokenChan <- token
-					break
-				}
-			}
-		}
-		if l.buf.Len() < BUF_THRESHOLD {
-			for i := 0; i < BUF_THRESHOLD; i++ {
-				//r, _, err := l.input.ReadRune()
-				r, _, err := l.buf.ReadRune()
-				if err != nil {
-					if err != io.EOF {
-						l.errorChan <- err
-						break
-					}
-				} else {
-					l.buf.WriteRune(r)
-				}
-			}
-			if l.buf.Len() == 0 {
-				break
-			}
-		}
-	}
-	close(l.tokenChan)
 }

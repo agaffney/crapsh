@@ -44,7 +44,7 @@ func (p *Parser) Parse(input parser_input.Input) {
 	p.Reset()
 	p.lexer.Start(input)
 	for {
-		token, err := p.lexer.NextToken()
+		token, err := p.lexer.ReadToken()
 		fmt.Printf("token = %#v\n", token)
 		if err != nil {
 			if err == io.EOF {
@@ -323,7 +323,7 @@ func (p *Parser) nextToken() (*lexer.Token, error) {
 		p.tokenIdx++
 		return p.curToken(), nil
 	} else {
-		token := p.lexer.ReadToken()
+		token, _ := p.lexer.ReadToken()
 		/*
 			if err != nil {
 				return nil, err

@@ -8,6 +8,21 @@ import (
 	"io"
 )
 
+func (l *Lexer) generateTokens() {
+	for {
+		token, err := l.nextToken()
+		if err != nil {
+			close(l.tokenChan)
+			if err == io.EOF {
+				break
+			} else {
+				l.errorChan <- err
+			}
+		}
+		l.tokenChan <- token
+	}
+}
+
 func (l *Lexer) checkForEscape(value string) bool {
 	escapeFound := false
 	valueLen := len(value)
@@ -66,7 +81,7 @@ func (l *Lexer) checkForDelimeter(value string, delim string, ignoreEscapes bool
 
 // Tokenize the input per the POSIX spec
 // https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
-func (l *Lexer) NextToken() (*Token, error) {
+func (l *Lexer) nextToken() (*Token, error) {
 	token := &Token{}
 	delimRuleStack := []*rules.DelimeterRule{rules.GetDelimeterRule(`Word`)}
 	processingOperator := false
