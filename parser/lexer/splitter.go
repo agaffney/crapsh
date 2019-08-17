@@ -138,6 +138,8 @@ func (l *Lexer) nextToken() (*Token, error) {
 			l.nextLine()
 			// Remove newline from input if it's escaped
 			if escapeFound {
+				// Remove backslash from current token
+				token.Value = token.Value[:len(token.Value)-1]
 				escapeFound = false
 				l.readLine(true)
 				continue

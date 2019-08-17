@@ -17,43 +17,9 @@ type splitterTestCase struct {
 	output []splitterTestCaseOutput
 }
 
-func TestSplitter(t *testing.T) {
-	test_cases := []splitterTestCase{
-		{
-			input: "echo foo bar",
-			output: []splitterTestCaseOutput{
-				{token: tokens.TOKEN_NULL, value: `echo`},
-				{token: tokens.TOKEN_NULL, value: `foo`},
-				{token: tokens.TOKEN_NULL, value: `bar`},
-			},
-		},
-		{
-			input: "foo $(echo bar foo bar) baz\nabc \"123 456\" 'd\nef' 789",
-			output: []splitterTestCaseOutput{
-				{token: tokens.TOKEN_NULL, value: `foo`},
-				{token: tokens.TOKEN_NULL, value: `$(echo bar foo bar)`},
-				{token: tokens.TOKEN_NULL, value: `baz`},
-				{token: tokens.TOKEN_NEWLINE, value: "\n"},
-				{token: tokens.TOKEN_NULL, value: `abc`},
-				{token: tokens.TOKEN_NULL, value: `"123 456"`},
-				{token: tokens.TOKEN_NULL, value: "'d\nef'"},
-				{token: tokens.TOKEN_NULL, value: `789`},
-			},
-		},
-		{
-			input: "echo foo bar#baz\necho foo #bar",
-			output: []splitterTestCaseOutput{
-				{token: tokens.TOKEN_NULL, value: `echo`},
-				{token: tokens.TOKEN_NULL, value: `foo`},
-				{token: tokens.TOKEN_NULL, value: `bar`},
-				{token: tokens.TOKEN_NEWLINE, value: "\n"},
-				{token: tokens.TOKEN_NULL, value: `echo`},
-				{token: tokens.TOKEN_NULL, value: `foo`},
-			},
-		},
-	}
+func runTests(testCases []splitterTestCase, t *testing.T) {
 	lexer := New()
-	for _, test_case := range test_cases {
+	for _, test_case := range testCases {
 		lexer.Reset()
 		input := parser_input.NewStringParserInput(test_case.input)
 		lexer.Start(input)
@@ -96,4 +62,80 @@ func TestSplitter(t *testing.T) {
 			t.Fatalf("Expected nil token, got token type %d with value `%s`", token.Type, token.Value)
 		}
 	}
+}
+
+func TestSplitterBasic(t *testing.T) {
+	test_cases := []splitterTestCase{
+		{
+			input: "echo foo bar",
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_NULL, value: `bar`},
+			},
+		},
+	}
+	runTests(test_cases, t)
+}
+
+func TestSplitterMultipleLines(t *testing.T) {
+	test_cases := []splitterTestCase{
+		{
+			input: "foo $(echo bar foo bar) baz\nabc \"123 456\" 789",
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_NULL, value: `$(echo bar foo bar)`},
+				{token: tokens.TOKEN_NULL, value: `baz`},
+				{token: tokens.TOKEN_NEWLINE, value: "\n"},
+				{token: tokens.TOKEN_NULL, value: `abc`},
+				{token: tokens.TOKEN_NULL, value: `"123 456"`},
+				{token: tokens.TOKEN_NULL, value: `789`},
+			},
+		},
+	}
+	runTests(test_cases, t)
+}
+
+func TestSplitterComments(t *testing.T) {
+	test_cases := []splitterTestCase{
+		{
+			input: "echo foo bar#baz\necho foo #bar",
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_NULL, value: `bar`},
+				{token: tokens.TOKEN_NEWLINE, value: "\n"},
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+			},
+		},
+	}
+	runTests(test_cases, t)
+}
+
+func TestSplitterContinuation(t *testing.T) {
+	test_cases := []splitterTestCase{
+		{
+			input: "echo foo 'bar\nbaz' abc 123",
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_NULL, value: "'bar\nbaz'"},
+				{token: tokens.TOKEN_NULL, value: `abc`},
+				{token: tokens.TOKEN_NULL, value: `123`},
+			},
+		},
+		{
+			input: "echo foo bar \\\nbaz abc 123",
+			output: []splitterTestCaseOutput{
+				{token: tokens.TOKEN_NULL, value: `echo`},
+				{token: tokens.TOKEN_NULL, value: `foo`},
+				{token: tokens.TOKEN_NULL, value: `bar`},
+				{token: tokens.TOKEN_NULL, value: `baz`},
+				{token: tokens.TOKEN_NULL, value: `abc`},
+				{token: tokens.TOKEN_NULL, value: `123`},
+			},
+		},
+	}
+	runTests(test_cases, t)
 }
