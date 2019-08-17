@@ -1,10 +1,9 @@
 package lexer
 
 import (
-	"bufio"
+	parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/parser/tokens"
 	"io"
-	"strings"
 	"testing"
 )
 
@@ -16,24 +15,6 @@ type splitterTestCaseOutput struct {
 type splitterTestCase struct {
 	input  string
 	output []splitterTestCaseOutput
-}
-
-type parserInput struct {
-	input *bufio.Reader
-}
-
-func NewParserInput(input string) *parserInput {
-	i := &parserInput{}
-	i.input = bufio.NewReader(strings.NewReader(input))
-	return i
-}
-
-func (i *parserInput) ReadLine() (string, error) {
-	return i.input.ReadString('\n')
-}
-
-func (i *parserInput) ReadAnotherLine() (string, error) {
-	return i.input.ReadString('\n')
 }
 
 func TestSplitter(t *testing.T) {
@@ -63,12 +44,16 @@ func TestSplitter(t *testing.T) {
 	lexer := New()
 	for _, test_case := range test_cases {
 		lexer.Reset()
-		input := NewParserInput(test_case.input)
+		input := parser_input.NewStringParserInput(test_case.input)
 		lexer.Start(input)
-		for _, expected := range test_case.output {
+		for idx, expected := range test_case.output {
 			token, err := lexer.NextToken()
 			if err != nil {
 				if err == io.EOF {
+					// TODO: handle reading multiple lines
+					if idx < len(test_case.output)-1 {
+						t.Fatalf("Encountered unexpected EOF")
+					}
 					break
 				} else {
 					t.Fatalf("Unexpected error: %s", err.Error())

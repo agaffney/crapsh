@@ -9,10 +9,9 @@ import (
 const BUF_THRESHOLD = 1024
 
 type Lexer struct {
-	buf       *bytes.Buffer
-	tokenChan chan *Token
-	errorChan chan error
-	//input      *bufio.Reader
+	buf        *bytes.Buffer
+	tokenChan  chan *Token
+	errorChan  chan error
 	input      parser_input.Input
 	lineNum    int
 	lineOffset int

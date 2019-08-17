@@ -27,6 +27,8 @@ var OperatorRules = []OperatorRule{
 	{Pattern: `<`, TokenType: tokens.TOKEN_LESS},
 	{Pattern: `>`, TokenType: tokens.TOKEN_GREAT},
 	{Pattern: `&`, TokenType: tokens.TOKEN_AND},
-	{Pattern: `(`, TokenType: tokens.TOKEN_LPAREN},
-	{Pattern: `)`, TokenType: tokens.TOKEN_RPAREN},
+	// TODO: maybe move these to delimeters
+	// Disabled because they were breaking up the $( delimeter
+	//	{Pattern: `(`, TokenType: tokens.TOKEN_LPAREN},
+	//	{Pattern: `)`, TokenType: tokens.TOKEN_RPAREN},
 }

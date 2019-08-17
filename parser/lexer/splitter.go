@@ -2,7 +2,9 @@ package lexer
 
 import (
 	//"bytes"
+	"fmt"
 	"github.com/agaffney/crapsh/parser/rules"
+	"github.com/agaffney/crapsh/parser/tokens"
 	"io"
 )
 
@@ -81,6 +83,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 			if err == io.EOF {
 				// Return the current token, if any
 				if len(token.Value) > 0 {
+					fmt.Printf("returning token from EOF: %#v\n", token)
 					return token, err
 				} else {
 					return nil, err
@@ -96,11 +99,31 @@ func (l *Lexer) NextToken() (*Token, error) {
 					if len(token.Value) > 0 {
 						// Return rune to the buffer
 						l.unreadRune()
+						fmt.Printf("returning token from operator start: %#v\n", token)
 						return token, nil
 					}
 					processingOperator = true
 				}
 			}
+		}
+		// TODO: do something useful with \r
+		if c == '\n' {
+			// Remove newline from input if it's escaped
+			if escapeFound {
+				escapeFound = false
+				// TODO: read another line
+				continue
+			}
+			// Return any current token
+			if len(token.Value) > 0 {
+				l.unreadRune()
+				fmt.Printf("returned token from newline, prev token: %#v\n", token)
+				return token, nil
+			}
+			token.Type = tokens.TOKEN_NEWLINE
+			token.Value = string(c)
+			fmt.Printf("return newline token: %#v\n", token)
+			return token, nil
 		}
 		// Add rune to current token value
 		token.Value += string(c)
@@ -111,6 +134,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 				// Return last rune to the buffer and return operator token
 				l.unreadRune()
 				token.Value = token.Value[:len(token.Value)-1]
+				fmt.Printf("returning token from operator end: %#v\n", token)
 				return token, nil
 			} else {
 				// Update token type with current best guess for operator
@@ -148,6 +172,7 @@ func (l *Lexer) NextToken() (*Token, error) {
 			}
 			if curDelimRule.ReturnToken {
 				if len(token.Value) > 0 {
+					fmt.Printf("returning token from delimeter end: %#v\n", token)
 					return token, nil
 				}
 				//escapeFound = true
@@ -157,5 +182,6 @@ func (l *Lexer) NextToken() (*Token, error) {
 			delimRuleStack = delimRuleStack[:len(delimRuleStack)-1]
 		}
 	}
+	fmt.Printf("return token from end of func: %#v\n", token)
 	return token, nil
 }
