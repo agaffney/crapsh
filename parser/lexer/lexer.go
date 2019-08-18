@@ -6,7 +6,12 @@ import (
 	"io"
 )
 
-const BUF_THRESHOLD = 1024
+const (
+	BUF_THRESHOLD = 1024
+	MODE_NULL     = iota
+	MODE_NORMAL
+	MODE_HEREDOC
+)
 
 type Lexer struct {
 	buf            *bytes.Buffer
@@ -16,6 +21,7 @@ type Lexer struct {
 	lineNum        int
 	lineOffset     int
 	prevLineOffset int
+	mode           int
 }
 
 type Token struct {
@@ -38,6 +44,7 @@ func (l *Lexer) Reset() {
 	l.input = nil
 	l.lineNum = 1
 	l.lineOffset = 1
+	l.mode = MODE_NORMAL
 }
 
 func (l *Lexer) Start(input parser_input.Input) {
@@ -46,6 +53,10 @@ func (l *Lexer) Start(input parser_input.Input) {
 	// TODO: check for error
 	l.readLine(false)
 	go l.generateTokens()
+}
+
+func (l *Lexer) SetMode(mode int) {
+	l.mode = mode
 }
 
 func (l *Lexer) readLine(continuation bool) error {
