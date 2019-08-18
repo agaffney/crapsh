@@ -38,7 +38,7 @@ func (l *Lexer) checkForEscape(value string) bool {
 	return escapeFound
 }
 
-func (l *Lexer) checkForOperators(value string, startsWith bool) (int, bool) {
+func (l *Lexer) checkForOperators(value string, startsWith bool) *rules.OperatorRule {
 	for _, op := range rules.OperatorRules {
 		var opLen int
 		if startsWith {
@@ -57,10 +57,10 @@ func (l *Lexer) checkForOperators(value string, startsWith bool) (int, bool) {
 		}
 		// Return operator token type if there's a match
 		if value[:opLen] == op.Pattern[:opLen] {
-			return op.TokenType, op.IoNumber
+			return &op
 		}
 	}
-	return -1, false
+	return nil
 }
 
 func (l *Lexer) checkForDelimeter(value string, delim string, ignoreEscapes bool) bool {
@@ -122,11 +122,14 @@ func (l *Lexer) nextToken() (*Token, error) {
 		// Check for start of operator
 		if curDelimRule.AllowOperators && !escapeFound {
 			if !processingOperator {
-				if tokenType, ioNumber := l.checkForOperators(string(c), true); tokenType != -1 {
+				if opRule := l.checkForOperators(string(c), true); opRule != nil {
 					if len(token.Value) > 0 {
-						if ioNumber {
-							if _, err := strconv.Atoi(token.Value); err == nil {
-								token.Type = tokens.TOKEN_IO_NUMBER
+						// If current token conists of only digits, return type IO_NUMBER
+						if opRule.DelimitsIoNumber {
+							if num, err := strconv.Atoi(token.Value); err == nil {
+								if num >= 0 {
+									token.Type = tokens.TOKEN_IO_NUMBER
+								}
 							}
 						}
 						// Return rune to the buffer
@@ -184,15 +187,15 @@ func (l *Lexer) nextToken() (*Token, error) {
 		token.Value += string(c)
 		if processingOperator {
 			// Check if current token value still matches an operator
-			tokenType, _ := l.checkForOperators(token.Value, false)
-			if tokenType == -1 {
+			opRule := l.checkForOperators(token.Value, false)
+			if opRule == nil {
 				// Return last rune to the buffer and return operator token
 				l.unreadRune()
 				token.Value = token.Value[:len(token.Value)-1]
 				return token, nil
 			} else {
 				// Update token type with current best guess for operator
-				token.Type = tokenType
+				token.Type = opRule.TokenType
 			}
 		}
 		if !curDelimRule.IgnoreEscapes && c == '\\' {
