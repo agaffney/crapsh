@@ -2,8 +2,10 @@ package parser
 
 import (
 	"fmt"
-	"github.com/agaffney/crapsh/lang"
+	//"github.com/agaffney/crapsh/lang"
 	//"github.com/agaffney/crapsh/util"
+	"github.com/agaffney/crapsh/parser/ast"
+	"github.com/agaffney/crapsh/parser/rules/grammar"
 )
 
 const (
@@ -19,19 +21,19 @@ type Stack struct {
 type StackEntry struct {
 	//	hint           *lang.ParserHint
 	//	allowed        []*lang.ParserHint
-	entry          *lang.ElementEntry
-	element        lang.Element
-	parentEndToken *lang.ParserHint
-	hintIdx        int
+	rule    *grammar.GrammarRule
+	astNode ast.Node
+	//parentEndToken *lang.ParserHint
+	hintIdx int
 }
 
 func (stack *Stack) Reset() {
-	stack.entries = nil
+	//stack.entries = nil
 	stack.entries = make([]*StackEntry, 0)
 	stack.depth = -1
 }
 
-func (stack *Stack) Add(entry *lang.ElementEntry) {
+func (stack *Stack) Add(rule *grammar.GrammarRule) {
 	/*
 		allowed := []*lang.ParserHint{}
 		if hint.CaptureAll {
@@ -57,11 +59,11 @@ func (stack *Stack) Add(entry *lang.ElementEntry) {
 			}
 		}
 	*/
-	e := &StackEntry{entry: entry}
+	e := &StackEntry{rule: rule}
 	stack.entries = append(stack.entries, e)
 	stack.depth++
 	//e.element = stack.parser.newElement()
-	fmt.Printf("\n>>> stack[%d] = %#v, parentEndToken=%#v\n\n", stack.depth, entry, e.parentEndToken)
+	fmt.Printf("\n>>> stack[%d] = %#v\n\n", stack.depth, rule)
 	//fmt.Printf("  allowed = [\n")
 	//for _, foo := range e.allowed {
 	//	fmt.Printf("    %#v,\n", foo)
@@ -78,7 +80,7 @@ func (stack *Stack) Remove() {
 	stack.entries = stack.entries[:len(stack.entries)-1]
 	stack.depth--
 	if stack.depth >= MIN_STACK_DEPTH {
-		fmt.Printf("\n<<< stack[%d] = %#v, parentEndToken=%#v\n\n", stack.depth, stack.entries[stack.depth].entry, stack.entries[stack.depth].parentEndToken)
+		fmt.Printf("\n<<< stack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].rule)
 	}
 }
 
@@ -96,9 +98,9 @@ func (stack *Stack) Prev() *StackEntry {
 	return nil
 }
 
-func (entry *StackEntry) NextHint() *lang.ParserHint {
-	if entry.hintIdx < len(entry.entry.ParserData)-1 {
-		return entry.entry.ParserData[entry.hintIdx+1]
+func (entry *StackEntry) NextHint() *grammar.ParserHint {
+	if entry.hintIdx < len(entry.rule.ParserHints)-1 {
+		return entry.rule.ParserHints[entry.hintIdx+1]
 	}
 	return nil
 }

@@ -3,10 +3,14 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 func DumpJson(v interface{}, label string) {
-	foo, _ := json.MarshalIndent(v, "", "  ")
+	foo, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to dump object to JSON: %s", err.Error())
+	}
 	fmt.Printf("%s%s\n", label, foo)
 }
 

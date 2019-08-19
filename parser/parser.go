@@ -2,26 +2,27 @@ package parser
 
 import (
 	"bytes"
-	"errors"
+	//"errors"
 	"fmt"
-	"github.com/agaffney/crapsh/lang"
+	//"github.com/agaffney/crapsh/lang"
+	"github.com/agaffney/crapsh/parser/ast"
 	parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/parser/lexer"
-	//"github.com/agaffney/crapsh/util"
+	"github.com/agaffney/crapsh/parser/rules/grammar"
+	"github.com/agaffney/crapsh/util"
 	"io"
-	"log"
-	"os"
+	//"log"
+	//"os"
 )
 
-var ERR_FOUND_PARENT_END_TOKEN = errors.New("found parent end token")
-
 type Parser struct {
-	input       parser_input.Input
-	stack       *Stack
-	buf         *bytes.Buffer
-	tokenBuf    []*lexer.Token
-	tokenIdx    int
-	commandChan chan lang.Element
+	input    parser_input.Input
+	stack    *Stack
+	buf      *bytes.Buffer
+	tokenBuf []*lexer.Token
+	tokenIdx int
+	//commandChan chan lang.Element
+	commandChan chan ast.Node
 	errorChan   chan error
 	lexer       *lexer.Lexer
 }
@@ -33,7 +34,7 @@ func NewParser() *Parser {
 }
 
 func (p *Parser) Reset() {
-	p.commandChan = make(chan lang.Element)
+	p.commandChan = make(chan ast.Node)
 	p.errorChan = make(chan error)
 	p.stack = &Stack{parser: p}
 	p.buf = bytes.NewBuffer(nil)
@@ -43,45 +44,46 @@ func (p *Parser) Reset() {
 func (p *Parser) Parse(input parser_input.Input) {
 	p.Reset()
 	p.lexer.Start(input)
-	for {
-		token, err := p.lexer.ReadToken()
-		fmt.Printf("token = %#v\n", token)
-		if err != nil {
-			if err == io.EOF {
-				if input.IsAvailable() {
-					// Restart the lexer to keep pulling from the input
-					p.lexer.Start(input)
+	/*
+		for {
+			token, err := p.lexer.ReadToken()
+			fmt.Printf("token = %#v\n", token)
+			if err != nil {
+				if err == io.EOF {
+					if input.IsAvailable() {
+						// Restart the lexer to keep pulling from the input
+						p.lexer.Start(input)
+					} else {
+						os.Exit(0)
+					}
 				} else {
-					os.Exit(0)
+					log.Fatal(err)
 				}
-			} else {
-				log.Fatal(err)
 			}
 		}
-	}
-	return
-	/*
-		p.tokenBuf = make([]*lexer.Token, 0)
-		p.tokenIdx = -1
-		go func() {
-			for {
-				// Reset the hint stack
-				p.stack.Reset()
-				// Start parsing with "root" element
-				ok, err := p.parseElement("Root", true)
-				if err != nil {
-					p.errorChan <- err
-					close(p.errorChan)
-					break
-				}
-				// EOF
-				if !ok {
-					break
-				}
-			}
-			close(p.commandChan)
-		}()
+		return
 	*/
+	p.tokenBuf = make([]*lexer.Token, 0)
+	p.tokenIdx = -1
+	go func() {
+		for {
+			fmt.Printf("p.stack = %#v\n", p.stack)
+			// Reset the hint stack
+			p.stack.Reset()
+			// Start parsing with "root" element
+			ok, err := p.parseRule("BasicCommand", true)
+			if err != nil {
+				p.errorChan <- err
+				close(p.errorChan)
+				break
+			}
+			// EOF
+			if !ok {
+				break
+			}
+		}
+		close(p.commandChan)
+	}()
 }
 
 /*
@@ -95,19 +97,18 @@ func (p *Parser) GetError() error {
 }
 */
 
-func (p *Parser) GetCommand() *lang.Element {
+func (p *Parser) GetCommand() ast.Node {
 	cmd := <-p.commandChan
 	if cmd != nil {
-		return &cmd
+		return cmd
 	} else {
 		return nil
 	}
 }
 
-/*
 // Handles an individual parser hint
-func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
-	//util.DumpObject(hint, "parseHandleHint(): hint = ")
+func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
+	util.DumpObject(hint, "parseHandleHint(): hint = ")
 	var err error
 	var count int
 	var ok bool
@@ -116,18 +117,18 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 		ok = false
 		origTokenIdx = p.getTokenIdx()
 		switch {
-		case hint.Type == lang.HINT_TYPE_ELEMENT:
-			ok, err = p.parseElement(hint.Name, false)
-		case hint.Type == lang.HINT_TYPE_ANY:
+		case hint.Type == grammar.HINT_TYPE_RULE:
+			ok, err = p.parseRule(hint.Name, false)
+		case hint.Type == grammar.HINT_TYPE_ANY:
 			ok, err = p.parseAny(hint.Members)
-		case hint.Type == lang.HINT_TYPE_GROUP:
+		case hint.Type == grammar.HINT_TYPE_GROUP:
 			ok, err = p.parseGroup(hint.Members, false)
-		case hint.Type == lang.HINT_TYPE_TOKEN:
+		case hint.Type == grammar.HINT_TYPE_TOKEN:
 			ok, err = p.parseToken(hint)
 		default:
 			return ok, fmt.Errorf("Unhandled hint type: %d\n", hint.Type)
 		}
-		//util.DumpObject(ok, "parseHandleHint(): ok = ")
+		util.DumpObject(ok, "parseHandleHint(): ok = ")
 		if err != nil {
 			return ok, err
 		}
@@ -143,31 +144,12 @@ func (p *Parser) parseHandleHint(hint *lang.ParserHint) (bool, error) {
 			break
 		}
 		count++
-		// TODO: remove look ahead, as we're being specific about valid tokens in the hints
-		// Look ahead to see if next token in buffer matches current end token
-		if nextHint := p.stack.Cur().NextHint(); nextHint != nil && nextHint.Type == lang.HINT_TYPE_TOKEN {
-			token, err := p.nextToken()
-			if err != nil {
-				if err == io.EOF {
-					return ok, nil
-				}
-				return ok, err
-			}
-			if token != nil && nextHint.Name == token.Type {
-				fmt.Printf("parseHandleHint(): look-ahead MATCH: token=%#v, nextHint=%#v\n", token, nextHint)
-				p.prevToken()
-				if hint.Optional || (hint.Many && count > 0) {
-					return true, nil
-				}
-				return ok, nil
-			}
-			p.prevToken()
-		}
 	}
 	return true, nil
 }
 
-func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
+func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
+	util.DumpObject(hint, "parseToken(): hint = ")
 	token, err := p.nextToken()
 	if err != nil {
 		if err == io.EOF {
@@ -175,32 +157,16 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 		}
 		return false, err
 	}
-	util.DumpObject(hint, "parseToken(): hint = ")
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
-	// TODO: remove parentEndToken logic, as it's not needed
-	if nextHint := p.stack.Cur().NextHint(); nextHint != nil {
-		if nextHint.Type == lang.HINT_TYPE_TOKEN && nextHint.Name == token.Type {
-			p.prevToken()
-			return false, nil
-		}
-	} else {
-		if p.stack.Cur().parentEndToken != nil && p.stack.Cur().parentEndToken.Name == token.Type {
-			fmt.Printf("parseToken(): matched parentTokenEnd=%#v\n", p.stack.Cur().parentEndToken)
-			p.prevToken()
-			return false, ERR_FOUND_PARENT_END_TOKEN
-		}
-	}
 	tokenMatch := false
-	for _, hint_token := range hint.Tokens {
+	for _, hint_token := range hint.TokenTypes {
 		if hint_token == token.Type {
 			tokenMatch = true
 			break
 		}
 	}
 	if tokenMatch {
-		e := lang.NewGeneric(`Token`)
-		e.Content = token.Value
-		p.stack.Cur().element.AddChild(e)
+		p.stack.Cur().astNode.AddToken(token)
 		return true, nil
 	}
 	return false, nil
@@ -208,9 +174,9 @@ func (p *Parser) parseToken(hint *lang.ParserHint) (bool, error) {
 
 // Handles a 'group' parser hint
 // Succeeds if all parser hints match
-func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool, error) {
+func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bool, error) {
 	for idx, hint := range hints {
-		//util.DumpObject(hint, "parseGroup(): hint = ")
+		util.DumpObject(hint, "parseGroup(): hint = ")
 		if updateHintIdx {
 			p.stack.Cur().hintIdx = idx
 		}
@@ -225,55 +191,36 @@ func (p *Parser) parseGroup(hints []*lang.ParserHint, updateHintIdx bool) (bool,
 	return true, nil
 }
 
-// Handles an 'element' parser hint
-func (p *Parser) parseElement(element string, send_channel bool) (bool, error) {
-	var parentEndToken *lang.ParserHint
-	entry := lang.GetElementEntry(element)
-	if entry == nil {
+// Handles a 'rule' parser hint
+func (p *Parser) parseRule(ruleName string, send_channel bool) (bool, error) {
+	//var parentEndToken *grammar.ParserHint
+	rule := grammar.GetRule(ruleName)
+	if rule == nil {
 		return false, nil
 	}
-	// Check next hint for current stack entry to set as the parentEndToken
-	// on the new stack entry
-	if p.stack.Cur() != nil {
-		if nextHint := p.stack.Cur().NextHint(); nextHint != nil {
-			if nextHint.Type == lang.HINT_TYPE_TOKEN {
-				parentEndToken = nextHint
-			}
-		}
-		if parentEndToken == nil && p.stack.Cur().parentEndToken != nil {
-			parentEndToken = p.stack.Cur().parentEndToken
-		}
-	}
-	//util.DumpObject(entry, "parseElement(): entry = ")
-	p.stack.Add(entry)
-	e := lang.NewGeneric(entry.Name)
+	util.DumpObject(rule, "parseRule(): rule = ")
+	p.stack.Add(rule)
+	e := ast.NewNode()
 	//fmt.Printf("%#v\n", e)
-	if p.stack.Cur().entry.Factory != nil {
-		foo := p.stack.Cur().entry.Factory(e)
-		//fmt.Printf("%s\n", foo)
-		p.stack.Cur().element = foo
-	}
-	p.stack.Cur().parentEndToken = parentEndToken
-	p.stack.Cur().element = e
-	ok, err := p.parseGroup(entry.ParserData, true)
-	if err != nil {
-		if err != ERR_FOUND_PARENT_END_TOKEN {
-			return false, err
-		} else {
-			// If the parent end token has been found and matches
-			// our current parent end token, pass the error up the
-			// chain
-			if p.stack.Cur().parentEndToken.Name == p.curToken().Type {
-				return false, err
-			}
+	/*
+		if p.stack.Cur().rule.AstFunc != nil {
+			foo := p.stack.Cur().rule.AstFunc(e)
+			//fmt.Printf("%s\n", foo)
+			p.stack.Cur().astNode = foo
 		}
+	*/
+	//p.stack.Cur().parentEndToken = parentEndToken
+	p.stack.Cur().astNode = e
+	ok, err := p.parseGroup(rule.ParserHints, true)
+	if err != nil {
+		return false, err
 	}
 	p.stack.Remove()
 	if ok {
 		if p.stack.Cur() != nil {
-			p.stack.Cur().element.AddChild(e)
+			p.stack.Cur().astNode.AddChild(e)
 		} else if send_channel {
-			//util.DumpJson(e, "sending root element:\n")
+			util.DumpJson(e, "sending root element:\n")
 			p.commandChan <- e
 		}
 	}
@@ -282,9 +229,9 @@ func (p *Parser) parseElement(element string, send_channel bool) (bool, error) {
 
 // Handles an 'any' parser hint
 // Succeeds if any parser hints match
-func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
+func (p *Parser) parseAny(hints []*grammar.ParserHint) (bool, error) {
 	for _, hint := range hints {
-		//util.DumpObject(hint, "parseAny(): hint = ")
+		util.DumpObject(hint, "parseAny(): hint = ")
 		ok, err := p.parseHandleHint(hint)
 		if err != nil {
 			return ok, err
@@ -295,7 +242,6 @@ func (p *Parser) parseAny(hints []*lang.ParserHint) (bool, error) {
 	}
 	return false, nil
 }
-*/
 
 func (p *Parser) getTokenIdx() int {
 	return p.tokenIdx
@@ -337,158 +283,3 @@ func (p *Parser) nextToken() (*lexer.Token, error) {
 		return token, nil
 	}
 }
-
-//func (p *Parser) GetNextLine() (lang.Element, error) {
-//	escape := false
-//	// Reset the hint stack
-//	p.stack.Reset()
-//	p.stack.Add(lang.GetElementHints([]string{"Line"})[0])
-//	line_element := p.stack.Cur().element
-//	for {
-//		c, err := p.nextRune()
-//		if err != nil {
-//			if err != io.EOF {
-//				return nil, err
-//			}
-//			break
-//		}
-//		//fmt.Printf(">>> Stack item (%d): %#v\n\t%#v\n", stack.depth+1, stack.Cur(), stack.Cur().hint)
-//		//fmt.Printf("Line %d, offset %d, overall offset %d: %#U\n", p.Line, p.LineOffset, p.Offset, c)
-//		if c == '\\' && !p.stack.Cur().hint.IgnoreEscapes {
-//			escape = !escape
-//			p.buf.WriteRune(c)
-//			// Explicitly skip to the next iteration so we don't hit
-//			// the code below to turn off the 'escape' flag
-//			continue
-//		}
-//		if c == '\n' {
-//			p.nextLine()
-//			if escape {
-//				p.buf.WriteRune(c)
-//			} else {
-//				if p.stack.Cur().hint.TokenEnd == "" || p.stack.Cur().hint.EndTokenOptional {
-//					p.stack.Remove(p.buf)
-//					//fmt.Println("removing from stack due to newline")
-//					p.buf.Reset()
-//					break
-//				} else {
-//					p.buf.WriteRune(c)
-//				}
-//			}
-//			continue
-//		}
-//		if unicode.IsSpace(c) && !escape && p.stack.Cur().hint.EndOnWhitespace {
-//			if p.stack.Cur().hint.CaptureAll {
-//				// We're using the EndOnWhitespace value from our "parent", so if it's found,
-//				// we should remove the CaptureAll element from the stack
-//				p.stack.Remove(p.buf)
-//				//fmt.Println("removing from stack due to CaptureAll and whitespace")
-//				p.buf.Reset()
-//			}
-//			p.stack.Remove(p.buf)
-//			//fmt.Println("removing from stack due to whitespace")
-//			p.buf.Reset()
-//			continue
-//		}
-//		// Add new character to buf for checking start/end tokens
-//		p.buf.WriteRune(c)
-//		//fmt.Printf("buf = %#v\n", buf.String())
-//		if escape == false {
-//			if p.buf.checkForToken(p.stack.Cur().hint.TokenEnd) {
-//				// Remove start token from buf
-//				p.buf.removeBytes(len(p.stack.Cur().hint.TokenEnd))
-//				if p.stack.Cur().hint.CaptureAll {
-//					// We're using the end token from our "parent", so if it's found,
-//					// we should remove the CaptureAll element from the stack
-//					p.stack.Remove(p.buf)
-//					//fmt.Println("removing from stack due to CaptureAll and finding end token")
-//					p.buf.Reset()
-//				}
-//				p.stack.Remove(p.buf)
-//				//fmt.Println("removing from stack due to finding end token")
-//				p.buf.Reset()
-//				continue
-//			}
-//			parentTokenEnd := p.stack.Cur().parentTokenEnd
-//			if p.buf.checkForToken(parentTokenEnd) {
-//				// Remove end token from buf
-//				p.buf.removeBytes(len(p.stack.Cur().parentTokenEnd))
-//				if p.stack.Cur().hint.CaptureAll {
-//					// We're using the end token from our "parent", so if it's found,
-//					// we should remove the CaptureAll element from the stack
-//					p.stack.Remove(p.buf)
-//					//fmt.Println("removing from stack due to CaptureAll and finding end token")
-//					p.buf.Reset()
-//				}
-//				// Remove items from stack that don't have a required end token
-//				for {
-//					if p.stack.Cur().hint.EndTokenOptional || (p.stack.Cur().parentTokenEnd != "" && p.stack.Cur().hint.TokenEnd == "" && p.stack.Cur().parentTokenEnd == parentTokenEnd) {
-//						p.stack.Remove(p.buf)
-//						//fmt.Println("removing extra item from stack due to finding end token")
-//						p.buf.Reset()
-//					} else {
-//						break
-//					}
-//				}
-//				// Put last character of token back in buffer for re-discovery
-//				p.unreadRune()
-//				p.buf.removeBytes(utf8.RuneLen(c))
-//				continue
-//			}
-//		}
-//		found := false
-//		for _, hint := range p.stack.Cur().allowed {
-//			if hint.SkipCapture || p.buf.checkForToken(hint.TokenStart) || hint.CaptureAll {
-//				// Remove start token from buf
-//				p.buf.removeBytes(len(hint.TokenStart))
-//				if p.stack.Cur().hint.CaptureAll {
-//					// We're using the allowed elements from our "parent", so if one is found,
-//					// we should remove the CaptureAll element from the stack
-//					p.stack.Remove(p.buf)
-//					//fmt.Println("removing from stack due to CaptureAll and finding start token")
-//					p.buf.Reset()
-//				}
-//				p.stack.Add(hint)
-//				if hint.SkipCapture {
-//					p.unreadRune()
-//					// Remove last rune from buffer
-//					p.buf.removeBytes(utf8.RuneLen(c))
-//				}
-//				found = true
-//				break
-//			}
-//		}
-//		if !found && !p.stack.Cur().hint.CaptureAll {
-//			return nil, fmt.Errorf("line %d, pos %d: unexpected character `%c'", p.Position.Line, p.Position.LineOffset, c)
-//		}
-//		// Reset the 'escape' flag
-//		escape = false
-//	}
-//	// Remove any stack items that allow ending on EOF
-//	for p.stack.depth >= MIN_STACK_DEPTH {
-//		if p.stack.Cur().hint.TokenEnd == "" || p.stack.Cur().hint.EndTokenOptional {
-//			p.stack.Remove(p.buf)
-//			p.buf.Reset()
-//			//fmt.Println("removing from stack due to EOL/EOF")
-//		} else {
-//			break
-//		}
-//	}
-//	// Return the buffer if the stack is empty
-//	if p.stack.depth < MIN_STACK_DEPTH {
-//		return line_element, nil
-//	}
-//	// Return syntax error if we didn't close all of our containers
-//	return nil, fmt.Errorf("line %d: unexpected EOF while looking for token `%s'", p.stack.Cur().position.Line, p.stack.Cur().hint.TokenEnd)
-//}
-
-//func (p *Parser) newElement() lang.Element {
-//	e := lang.NewGeneric(p.stack.Cur().hint.Name)
-//	//fmt.Printf("%#v\n", e)
-//	if p.stack.Cur().hint.Factory != nil {
-//		foo := p.stack.Cur().hint.Factory(e)
-//		//fmt.Printf("%s\n", foo)
-//		return foo
-//	}
-//	return e
-//}
