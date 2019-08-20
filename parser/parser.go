@@ -2,26 +2,21 @@ package parser
 
 import (
 	"bytes"
-	//"errors"
 	"fmt"
-	//"github.com/agaffney/crapsh/lang"
 	"github.com/agaffney/crapsh/parser/ast"
 	parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/parser/lexer"
 	"github.com/agaffney/crapsh/parser/rules/grammar"
 	"github.com/agaffney/crapsh/util"
 	"io"
-	//"log"
-	//"os"
 )
 
 type Parser struct {
-	input    parser_input.Input
-	stack    *Stack
-	buf      *bytes.Buffer
-	tokenBuf []*lexer.Token
-	tokenIdx int
-	//commandChan chan lang.Element
+	input       parser_input.Input
+	stack       *Stack
+	buf         *bytes.Buffer
+	tokenBuf    []*lexer.Token
+	tokenIdx    int
 	commandChan chan ast.Node
 	errorChan   chan error
 	lexer       *lexer.Lexer

@@ -8,23 +8,6 @@ import (
 	"strconv"
 )
 
-func (l *Lexer) generateTokens() {
-	for {
-		token, err := l.nextToken()
-		if token != nil {
-			l.tokenChan <- token
-		}
-		if err != nil {
-			close(l.tokenChan)
-			if err == io.EOF {
-				break
-			} else {
-				l.errorChan <- err
-			}
-		}
-	}
-}
-
 func (l *Lexer) checkForEscape(value string) bool {
 	escapeFound := false
 	valueLen := len(value)
