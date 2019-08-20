@@ -36,7 +36,7 @@ func (p *Parser) Reset() {
 	p.lexer.Reset()
 }
 
-func (p *Parser) Parse(input parser_input.Input) {
+func (p *Parser) Start(input parser_input.Input) {
 	p.Reset()
 	p.lexer.Start(input)
 	/*
@@ -72,7 +72,7 @@ func (p *Parser) Parse(input parser_input.Input) {
 				close(p.errorChan)
 				break
 			}
-			// EOF
+			// EOF (?)
 			if !ok {
 				break
 			}
@@ -81,23 +81,12 @@ func (p *Parser) Parse(input parser_input.Input) {
 	}()
 }
 
-/*
-func (p *Parser) GetError() error {
+func (p *Parser) GetCommand() (ast.Node, error) {
 	select {
 	case err := <-p.errorChan:
-		return err
-	default:
-		return nil
-	}
-}
-*/
-
-func (p *Parser) GetCommand() ast.Node {
-	cmd := <-p.commandChan
-	if cmd != nil {
-		return cmd
-	} else {
-		return nil
+		return nil, err
+	case cmd := <-p.commandChan:
+		return cmd, nil
 	}
 }
 
@@ -182,18 +171,21 @@ func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bo
 		if !ok {
 			return ok, nil
 		}
+		// Set the "final" flag on the current stack entry if we've matched any hints
+		if updateHintIdx {
+			p.stack.Cur().final = true
+		}
 	}
 	return true, nil
 }
 
 // Handles a 'rule' parser hint
-func (p *Parser) parseRule(ruleName string, send_channel bool) (bool, error) {
-	//var parentEndToken *grammar.ParserHint
+func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	rule := grammar.GetRule(ruleName)
+	util.DumpObject(rule, "parseRule(): rule = ")
 	if rule == nil {
 		return false, nil
 	}
-	util.DumpObject(rule, "parseRule(): rule = ")
 	p.stack.Add(rule)
 	e := ast.NewNode()
 	//fmt.Printf("%#v\n", e)
@@ -214,9 +206,14 @@ func (p *Parser) parseRule(ruleName string, send_channel bool) (bool, error) {
 	if ok {
 		if p.stack.Cur() != nil {
 			p.stack.Cur().astNode.AddChild(e)
-		} else if send_channel {
+		} else if sendChannel {
 			util.DumpJson(e, "sending root element:\n")
 			p.commandChan <- e
+		}
+	} else {
+		token, _ := p.nextToken()
+		if token != nil {
+			return ok, fmt.Errorf("found unexpected token `%s` at line %d, offset %d", token.Value, token.LineNum, token.Offset)
 		}
 	}
 	return ok, nil

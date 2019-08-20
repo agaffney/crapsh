@@ -20,41 +20,41 @@ func New(config *Config) *State {
 
 func (state *State) Start() {
 	if state.config.CommandProvided {
+		// Command provided via -c option
 		input := core_input.NewCmdline(state.config.Command)
-		state.parser.Parse(input)
-		state.processCommands()
+		state.parser.Start(input)
+	} else if state.config.FileProvided && !state.config.ReadFromStdin {
+		// Read commands from STDIN (-s option)
 		/*
-			} else if state.config.FileProvided && !state.config.ReadFromStdin {
-				// TODO: move to core/input/file.go
-				file, err := os.Open(state.config.File)
-				if err != nil {
-					fmt.Printf("%s: %s\n", state.config.Binary, err)
-				}
-				state.config.Binary = state.config.File
-				state.parser.Parse(file)
-				state.processCommands()
+			// TODO: move to core/input/file.go
+			file, err := os.Open(state.config.File)
+			if err != nil {
+				fmt.Printf("%s: %s\n", state.config.Binary, err)
+			}
+			state.config.Binary = state.config.File
+			state.parser.Parse(file)
+			state.processCommands()
 		*/
 	} else {
+		// Interactive input
 		input := core_input.NewInteractive()
-		state.parser.Parse(input)
-		state.processCommands()
+		state.parser.Start(input)
 	}
+	state.processCommands()
 	os.Exit(0)
 }
 
 func (state *State) processCommands() {
 	for {
-		cmd := state.parser.GetCommand()
+		cmd, err := state.parser.GetCommand()
+		if err != nil {
+			fmt.Printf("%s: %s\n", state.config.Binary, err.Error())
+			os.Exit(1)
+		}
 		if cmd == nil {
 			fmt.Println("no more commands")
 			break
 		}
 		util.DumpJson(cmd, "Command:\n")
 	}
-	/*
-		if err := state.parser.GetError(); err != nil {
-			fmt.Printf("%s: %s\n", state.config.Binary, err)
-			os.Exit(1)
-		}
-	*/
 }

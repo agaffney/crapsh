@@ -19,16 +19,13 @@ type Stack struct {
 }
 
 type StackEntry struct {
-	//	hint           *lang.ParserHint
-	//	allowed        []*lang.ParserHint
 	rule    *grammar.GrammarRule
 	astNode ast.Node
-	//parentEndToken *lang.ParserHint
 	hintIdx int
+	final   bool
 }
 
 func (stack *Stack) Reset() {
-	//stack.entries = nil
 	stack.entries = make([]*StackEntry, 0)
 	stack.depth = -1
 }
