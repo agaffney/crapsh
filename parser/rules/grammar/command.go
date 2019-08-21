@@ -11,7 +11,7 @@ func init() {
 			ParserHints: []*ParserHint{
 				{
 					Type:       HINT_TYPE_TOKEN,
-					TokenTypes: []int{tokens.TOKEN_NULL},
+					TokenTypes: []int{tokens.TOKEN_WORD},
 					Many:       true,
 				},
 				{

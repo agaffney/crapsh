@@ -142,9 +142,10 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 		return false, err
 	}
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
+	tokenType := p.classifyToken(token, hint)
 	tokenMatch := false
 	for _, hint_token := range hint.TokenTypes {
-		if hint_token == token.Type {
+		if hint_token == tokenType {
 			tokenMatch = true
 			break
 		}
