@@ -143,6 +143,11 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 	}
 	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
 	tokenType := p.classifyToken(token, hint)
+	if reservedRule := p.checkTokenIsReserved(tokenType); reservedRule != nil {
+		if !reservedRule.DisallowReservedFollow {
+			p.stack.Cur().allowNextWordReserved = true
+		}
+	}
 	tokenMatch := false
 	for _, hint_token := range hint.TokenTypes {
 		if hint_token == tokenType {
@@ -188,6 +193,9 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 		return false, nil
 	}
 	p.stack.Add(rule)
+	if rule.AllowFirstWordReserved {
+		p.stack.Cur().allowNextWordReserved = true
+	}
 	e := ast.NewNode()
 	//fmt.Printf("%#v\n", e)
 	/*

@@ -23,9 +23,10 @@ type ParserHint struct {
 }
 
 type GrammarRule struct {
-	Name        string          // name of the rule, used to refer to other rules from a parser hint
-	ParserHints []*ParserHint   // parser hints for the rule
-	AstFunc     func() ast.Node `json:"-"` // don't include in JSON output, as it breaks encoding
+	Name                   string          // name of the rule, used to refer to other rules from a parser hint
+	ParserHints            []*ParserHint   // parser hints for the rule
+	AstFunc                func() ast.Node `json:"-"` // don't include in JSON output, as it breaks encoding
+	AllowFirstWordReserved bool            // whether the first word can be a reserved word
 }
 
 var GrammarRules = []*GrammarRule{}

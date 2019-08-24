@@ -19,10 +19,11 @@ type Stack struct {
 }
 
 type StackEntry struct {
-	rule    *grammar.GrammarRule
-	astNode ast.Node
-	hintIdx int
-	final   bool
+	rule                  *grammar.GrammarRule
+	astNode               ast.Node
+	hintIdx               int
+	final                 bool
+	allowNextWordReserved bool
 }
 
 func (stack *Stack) Reset() {

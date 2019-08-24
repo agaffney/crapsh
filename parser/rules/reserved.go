@@ -7,7 +7,7 @@ import (
 type ReservedRule struct {
 	Pattern                string // string to look for
 	TokenType              int    // token type to return
-	DisallowReservedFollow bool   // disable detection of keywords on the following word
+	DisallowReservedFollow bool   // disable detection of reserved words on the following word
 	AfterTokens            [][]int
 }
 
