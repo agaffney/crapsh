@@ -102,7 +102,7 @@ func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
 		origTokenIdx = p.getTokenIdx()
 		switch {
 		case hint.Type == grammar.HINT_TYPE_RULE:
-			ok, err = p.parseRule(hint.Name, false)
+			ok, err = p.parseRule(hint.RuleName, false)
 		case hint.Type == grammar.HINT_TYPE_ANY:
 			ok, err = p.parseAny(hint.Members)
 		case hint.Type == grammar.HINT_TYPE_GROUP:

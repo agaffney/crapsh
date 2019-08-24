@@ -14,7 +14,7 @@ const (
 
 type ParserHint struct {
 	Type       int
-	Name       string        // Name of rule or token to match
+	RuleName   string        // Name of rule or token to match
 	Optional   bool          // Hint is optional
 	Many       bool          // Hint can match multiple times
 	Final      bool          // Consider the rule matched if this hint matches
