@@ -8,20 +8,33 @@ import (
 	"regexp"
 )
 
+func (p *Parser) checkTokenIsReserved(tokenType int) bool {
+	for _, rule := range rules.ReservedRules {
+		if tokenType == rule.TokenType {
+			return true
+		}
+	}
+	return false
+}
+
 // Classify token based on current parser hint
 func (p *Parser) classifyToken(token *lexer.Token, hint *grammar.ParserHint) int {
 	// No need to classify if we already have
 	if token.Type != tokens.TOKEN_NULL {
 		return token.Type
 	}
+	for _, rule := range rules.ReservedRules {
+		// TODO: check for:
+		// * first word of command
+		// * next word after reserved token that doesn't have DisallowReservedFollow=true
+		// * previous tokens match AfterTokens (-1 is wildcard)
+		if token.Value == rule.Pattern {
+			return rule.TokenType
+		}
+	}
 	NAME_RE := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]+$`)
 	ASSIGNMENT_RE := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]+=`)
 	for hintTokenType := range hint.TokenTypes {
-		for _, rule := range rules.ReservedRules {
-			if token.Value == rule.Pattern {
-				return rule.TokenType
-			}
-		}
 		switch hintTokenType {
 		case tokens.TOKEN_NAME:
 			if NAME_RE.MatchString(token.Value) {
