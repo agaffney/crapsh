@@ -66,7 +66,7 @@ func (p *Parser) Start(input parser_input.Input) {
 			// Reset the hint stack
 			p.stack.Reset()
 			// Start parsing with "root" element
-			ok, err := p.parseRule("BasicCommand", true)
+			ok, err := p.parseRule(`complete_command`, true) // "BasicCommand"
 			if err != nil {
 				p.errorChan <- err
 				close(p.errorChan)
@@ -190,6 +190,7 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	rule := grammar.GetRule(ruleName)
 	util.DumpObject(rule, "parseRule(): rule = ")
 	if rule == nil {
+		// TODO: make this an error once the grammar is completed
 		return false, nil
 	}
 	p.stack.Add(rule)

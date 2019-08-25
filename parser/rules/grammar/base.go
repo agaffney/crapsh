@@ -6,6 +6,7 @@ import (
 
 func init() {
 	registerRules([]*GrammarRule{
+		// TODO: look for places to merge/condense rules
 		{
 			Name: `newline_list`,
 			ParserHints: []*ParserHint{

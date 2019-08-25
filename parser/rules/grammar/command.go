@@ -22,22 +22,56 @@ func init() {
 				},
 			},
 		},
-		// TODO: merge 'list' and 'and_or' rules into this one
+		// 'complete_command' and 'list' have been merged together
 		{
 			Name: `complete_command`,
 			ParserHints: []*ParserHint{
 				{
-					Type:     HINT_TYPE_RULE,
-					RuleName: `list`,
-				},
-				{
-					Type:     HINT_TYPE_RULE,
-					RuleName: `separator_op`,
-					Optional: true,
+					Type: HINT_TYPE_GROUP,
+					Many: true,
+					Members: []*ParserHint{
+						{
+							Type:     HINT_TYPE_RULE,
+							RuleName: `and_or`,
+						},
+						{
+							Type:     HINT_TYPE_RULE,
+							RuleName: `separator_op`,
+							Optional: true,
+						},
+					},
 				},
 			},
 		},
-		// pipeline and pipe_sequence have been merged together
+		{
+			Name: `and_or`,
+			ParserHints: []*ParserHint{
+				{
+					Type:     HINT_TYPE_RULE,
+					RuleName: `pipeline`,
+				},
+				{
+					Type:     HINT_TYPE_GROUP,
+					Optional: true,
+					Many:     true,
+					Members: []*ParserHint{
+						{
+							Type:       HINT_TYPE_TOKEN,
+							TokenTypes: []int{tokens.TOKEN_AND_IF, tokens.TOKEN_OR_IF},
+						},
+						{
+							Type:     HINT_TYPE_RULE,
+							RuleName: `linebreak`,
+						},
+						{
+							Type:     HINT_TYPE_RULE,
+							RuleName: `pipeline`,
+						},
+					},
+				},
+			},
+		},
+		// 'pipeline' and 'pipe_sequence' have been merged together
 		{
 			Name: `pipeline`,
 			ParserHints: []*ParserHint{
@@ -90,7 +124,7 @@ func init() {
 							Members: []*ParserHint{
 								{
 									Type:     HINT_TYPE_RULE,
-									RuleName: `simple_command`,
+									RuleName: `compound_command`,
 								},
 								{
 									Type:     HINT_TYPE_RULE,
@@ -101,6 +135,92 @@ func init() {
 						{
 							Type:     HINT_TYPE_RULE,
 							RuleName: `function_definition`,
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: `simple_command`,
+			ParserHints: []*ParserHint{
+				{
+					Type: HINT_TYPE_ANY,
+					Members: []*ParserHint{
+						{
+							Type: HINT_TYPE_GROUP,
+							Members: []*ParserHint{
+								{
+									Type:     HINT_TYPE_RULE,
+									RuleName: `cmd_prefix`,
+									Many:     true,
+								},
+								{
+									Type:     HINT_TYPE_GROUP,
+									Optional: true,
+									Members: []*ParserHint{
+										{
+											Type:     HINT_TYPE_RULE,
+											RuleName: `cmd_word`,
+										},
+										{
+											Type:     HINT_TYPE_RULE,
+											RuleName: `cmd_suffix`,
+											Optional: true,
+										},
+									},
+								},
+							},
+						},
+						{
+							Type: HINT_TYPE_GROUP,
+							Members: []*ParserHint{
+								{
+									Type:       HINT_TYPE_TOKEN,
+									TokenTypes: []int{tokens.TOKEN_WORD},
+								},
+								{
+									Type:     HINT_TYPE_RULE,
+									RuleName: `cmd_suffix`,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: `cmd_prefix`,
+			ParserHints: []*ParserHint{
+				{
+					Type: HINT_TYPE_ANY,
+					Members: []*ParserHint{
+						{
+							Type:       HINT_TYPE_TOKEN,
+							TokenTypes: []int{tokens.TOKEN_ASSIGNMENT_WORD},
+						},
+						{
+							Type:     HINT_TYPE_RULE,
+							RuleName: `io_redirect`,
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: `cmd_suffix`,
+			ParserHints: []*ParserHint{
+				{
+					Type: HINT_TYPE_ANY,
+					Many: true,
+					Members: []*ParserHint{
+						{
+							Type:       HINT_TYPE_TOKEN,
+							TokenTypes: []int{tokens.TOKEN_WORD},
+						},
+						{
+							Type:     HINT_TYPE_RULE,
+							RuleName: `io_redirect`,
 						},
 					},
 				},
