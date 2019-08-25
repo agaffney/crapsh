@@ -59,7 +59,7 @@ func (p *Parser) Start(input parser_input.Input) {
 	p.tokenIdx = -1
 	go func() {
 		for {
-			fmt.Printf("p.stack = %#v\n", p.stack)
+			//fmt.Printf("p.stack = %#v\n", p.stack)
 			// Reset the hint stack
 			p.stack.Reset()
 			// Start parsing with "root" element
@@ -109,13 +109,13 @@ func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
 		default:
 			return ok, fmt.Errorf("Unhandled hint type: %d\n", hint.Type)
 		}
-		util.DumpObject(ok, "parseHandleHint(): ok = ")
+		//util.DumpObject(ok, "parseHandleHint(): ok = ")
 		if err != nil {
-			fmt.Printf("parseHandleHint(): err = %s\n", err.Error())
+			//fmt.Printf("parseHandleHint(): err = %s\n", err.Error())
 			return ok, err
 		}
 		if !ok {
-			fmt.Printf("parseHandleHint(): !ok, hint.Many=%t, hint.Optional=%t, count=%d\n", hint.Many, hint.Optional, count)
+			//fmt.Printf("parseHandleHint(): !ok, hint.Many=%t, hint.Optional=%t, count=%d\n", hint.Many, hint.Optional, count)
 			p.setTokenIdx(origTokenIdx)
 			if hint.Optional || (hint.Many && count > 0) {
 				return true, nil
@@ -131,7 +131,7 @@ func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
 }
 
 func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
-	util.DumpObject(hint, "parseToken(): hint = ")
+	//util.DumpObject(hint, "parseToken(): hint = ")
 	token, err := p.nextToken()
 	if err != nil {
 		if err == io.EOF {
@@ -139,7 +139,7 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 		}
 		return false, err
 	}
-	util.DumpObject(p.curToken(), "parseToken(): curToken = ")
+	//util.DumpObject(p.curToken(), "parseToken(): curToken = ")
 	tokenType := p.classifyToken(token, hint)
 	if reservedRule := p.checkTokenIsReserved(tokenType); reservedRule != nil {
 		if !reservedRule.DisallowReservedFollow {
@@ -164,7 +164,7 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 // Succeeds if all parser hints match
 func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bool, error) {
 	for idx, hint := range hints {
-		util.DumpObject(hint, fmt.Sprintf("parseGroup(): hint[%d] = ", idx))
+		//util.DumpObject(hint, fmt.Sprintf("parseGroup(): hint[%d] = ", idx))
 		if updateHintIdx {
 			p.stack.Cur().hintIdx = idx
 		}
@@ -186,7 +186,7 @@ func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bo
 // Handles a 'rule' parser hint
 func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	rule := grammar.GetRule(ruleName)
-	util.DumpObject(rule, "parseRule(): rule = ")
+	//util.DumpObject(rule, "parseRule(): rule = ")
 	if rule == nil {
 		// TODO: make this an error once the grammar is completed
 		return false, nil
@@ -233,7 +233,7 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 // Succeeds if any parser hints match
 func (p *Parser) parseAny(hints []*grammar.ParserHint) (bool, error) {
 	for _, hint := range hints {
-		util.DumpObject(hint, "parseAny(): hint = ")
+		//util.DumpObject(hint, "parseAny(): hint = ")
 		ok, err := p.parseHandleHint(hint)
 		if err != nil {
 			return ok, err
@@ -251,9 +251,11 @@ func (p *Parser) getTokenIdx() int {
 
 func (p *Parser) setTokenIdx(idx int) {
 	p.tokenIdx = idx
-	if idx >= 0 {
-		fmt.Printf("setTokenIdx(%d): curToken = %#v\n", idx, p.curToken())
-	}
+	/*
+		if idx >= 0 {
+			fmt.Printf("setTokenIdx(%d): curToken = %#v\n", idx, p.curToken())
+		}
+	*/
 }
 
 func (p *Parser) curToken() *lexer.Token {

@@ -1,8 +1,7 @@
 package parser
 
 import (
-	"fmt"
-	//"github.com/agaffney/crapsh/lang"
+	//"fmt"
 	//"github.com/agaffney/crapsh/util"
 	"github.com/agaffney/crapsh/parser/ast"
 	"github.com/agaffney/crapsh/parser/rules/grammar"
@@ -32,41 +31,10 @@ func (stack *Stack) Reset() {
 }
 
 func (stack *Stack) Add(rule *grammar.GrammarRule) {
-	/*
-		allowed := []*lang.ParserHint{}
-		if hint.CaptureAll {
-			// If the current stack entry captures all, we need to use the allowed
-			// elements from the "parent". We also want to filter ourselves out
-			for _, foo := range lang.GetElementHints(stack.Cur().hint.AllowedElements) {
-				if !foo.CaptureAll {
-					allowed = append(allowed, foo)
-				}
-			}
-			// Use the end token info from the parent
-			hint.TokenEnd = stack.Cur().hint.TokenEnd
-			hint.EndOnWhitespace = stack.Cur().hint.EndOnWhitespace
-		} else {
-			allowed = lang.GetElementHints(hint.AllowedElements)
-		}
-		parentTokenEnd := ""
-		if stack.depth > MIN_STACK_DEPTH {
-			if foo := stack.Cur().hint.TokenEnd; foo != "" && !stack.Cur().hint.EndTokenOptional {
-				parentTokenEnd = foo
-			} else {
-				parentTokenEnd = stack.Cur().parentTokenEnd
-			}
-		}
-	*/
 	e := &StackEntry{rule: rule}
 	stack.entries = append(stack.entries, e)
 	stack.depth++
-	//e.element = stack.parser.newElement()
-	fmt.Printf("\n>>> stack[%d] = %#v\n\n", stack.depth, rule)
-	//fmt.Printf("  allowed = [\n")
-	//for _, foo := range e.allowed {
-	//	fmt.Printf("    %#v,\n", foo)
-	//}
-	//fmt.Printf("  ]\n\n")
+	//fmt.Printf("\n>>> stack[%d] = %#v\n\n", stack.depth, rule)
 }
 
 func (stack *Stack) Remove() {
@@ -77,9 +45,11 @@ func (stack *Stack) Remove() {
 	//util.DumpJson(stack.entries[stack.depth].element, "\nremoving element: ")
 	stack.entries = stack.entries[:len(stack.entries)-1]
 	stack.depth--
-	if stack.depth >= MIN_STACK_DEPTH {
-		fmt.Printf("\n<<< stack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].rule)
-	}
+	/*
+		if stack.depth >= MIN_STACK_DEPTH {
+			fmt.Printf("\n<<< stack[%d] = %#v\n\n", stack.depth, stack.entries[stack.depth].rule)
+		}
+	*/
 }
 
 func (stack *Stack) Cur() *StackEntry {

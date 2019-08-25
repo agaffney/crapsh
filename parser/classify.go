@@ -28,7 +28,7 @@ func (p *Parser) classifyToken(token *lexer.Token, hint *grammar.ParserHint) int
 		p.stack.Cur().allowNextWordReserved = false
 		for _, rule := range rules.ReservedRules {
 			// TODO: check for:
-			// * previous tokens match AfterTokens (-1 is wildcard)
+			// * previous tokens match AfterTokens (-1 is wildcard), for in/do after case/for
 			if token.Value == rule.Pattern {
 				return rule.TokenType
 			}
