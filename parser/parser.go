@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/agaffney/crapsh/parser/ast"
 	parser_input "github.com/agaffney/crapsh/parser/input"
@@ -14,7 +13,6 @@ import (
 type Parser struct {
 	input       parser_input.Input
 	stack       *Stack
-	buf         *bytes.Buffer
 	tokenBuf    []*lexer.Token
 	tokenIdx    int
 	commandChan chan ast.Node
@@ -32,7 +30,6 @@ func (p *Parser) Reset() {
 	p.commandChan = make(chan ast.Node)
 	p.errorChan = make(chan error)
 	p.stack = &Stack{parser: p}
-	p.buf = bytes.NewBuffer(nil)
 	p.lexer.Reset()
 }
 
@@ -198,7 +195,7 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	if rule.AllowFirstWordReserved {
 		p.stack.Cur().allowNextWordReserved = true
 	}
-	e := ast.NewNode()
+	e := ast.NewNode(rule.Name)
 	//fmt.Printf("%#v\n", e)
 	/*
 		if p.stack.Cur().rule.AstFunc != nil {
