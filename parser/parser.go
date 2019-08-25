@@ -92,7 +92,7 @@ func (p *Parser) GetCommand() (ast.Node, error) {
 
 // Handles an individual parser hint
 func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
-	util.DumpObject(hint, "parseHandleHint(): hint = ")
+	//util.DumpObject(hint, "parseHandleHint(): hint = ")
 	var err error
 	var count int
 	var ok bool
@@ -114,10 +114,11 @@ func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
 		}
 		util.DumpObject(ok, "parseHandleHint(): ok = ")
 		if err != nil {
+			fmt.Printf("parseHandleHint(): err = %s\n", err.Error())
 			return ok, err
 		}
 		if !ok {
-			fmt.Printf("parseHandleHint(): !ok, hint.Many=%t, count=%d\n", hint.Many, count)
+			fmt.Printf("parseHandleHint(): !ok, hint.Many=%t, hint.Optional=%t, count=%d\n", hint.Many, hint.Optional, count)
 			p.setTokenIdx(origTokenIdx)
 			if hint.Optional || (hint.Many && count > 0) {
 				return true, nil
@@ -166,7 +167,7 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 // Succeeds if all parser hints match
 func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bool, error) {
 	for idx, hint := range hints {
-		util.DumpObject(hint, "parseGroup(): hint = ")
+		util.DumpObject(hint, fmt.Sprintf("parseGroup(): hint[%d] = ", idx))
 		if updateHintIdx {
 			p.stack.Cur().hintIdx = idx
 		}
@@ -178,7 +179,7 @@ func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bo
 			return ok, nil
 		}
 		// Set the "final" flag on the current stack entry if we've matched any hints
-		if updateHintIdx {
+		if updateHintIdx && hint.Final {
 			p.stack.Cur().final = true
 		}
 	}
@@ -206,12 +207,12 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 			p.stack.Cur().astNode = foo
 		}
 	*/
-	//p.stack.Cur().parentEndToken = parentEndToken
 	p.stack.Cur().astNode = e
 	ok, err := p.parseGroup(rule.ParserHints, true)
 	if err != nil {
 		return false, err
 	}
+	curStackEntry := p.stack.Cur()
 	p.stack.Remove()
 	if ok {
 		if p.stack.Cur() != nil {
@@ -221,9 +222,11 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 			p.commandChan <- e
 		}
 	} else {
-		token, _ := p.nextToken()
-		if token != nil {
-			return ok, fmt.Errorf("found unexpected token `%s` at line %d, offset %d", token.Value, token.LineNum, token.Offset)
+		if curStackEntry.final {
+			token, _ := p.nextToken()
+			if token != nil {
+				return ok, fmt.Errorf("found unexpected token `%s` at line %d, offset %d", token.Value, token.LineNum, token.Offset)
+			}
 		}
 	}
 	return ok, nil
