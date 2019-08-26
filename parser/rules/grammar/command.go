@@ -1,30 +1,15 @@
 package grammar
 
 import (
+	"github.com/agaffney/crapsh/parser/ast"
 	"github.com/agaffney/crapsh/parser/tokens"
 )
 
 func init() {
 	registerRules([]*GrammarRule{
 		{
-			Name:                   `BasicCommand`,
-			AllowFirstWordReserved: true,
-			ParserHints: []*ParserHint{
-				{
-					Type:       HINT_TYPE_TOKEN,
-					TokenTypes: []int{tokens.TOKEN_WORD},
-					Many:       true,
-				},
-				{
-					Type:       HINT_TYPE_TOKEN,
-					TokenTypes: []int{tokens.TOKEN_NEWLINE},
-					Optional:   true,
-				},
-			},
-		},
-		// 'complete_command' and 'list' have been merged together
-		{
-			Name: `complete_command`,
+			Name:    `complete_command`,
+			AstFunc: ast.NewCommand,
 			ParserHints: []*ParserHint{
 				{
 					Type: HINT_TYPE_GROUP,

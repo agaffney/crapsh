@@ -65,10 +65,3 @@ func (stack *Stack) Prev() *StackEntry {
 	}
 	return nil
 }
-
-func (entry *StackEntry) NextHint() *grammar.ParserHint {
-	if entry.hintIdx < len(entry.rule.ParserHints)-1 {
-		return entry.rule.ParserHints[entry.hintIdx+1]
-	}
-	return nil
-}

@@ -195,16 +195,14 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	if rule.AllowFirstWordReserved {
 		p.stack.Cur().allowNextWordReserved = true
 	}
-	e := ast.NewNode(rule.Name)
 	//fmt.Printf("%#v\n", e)
-	/*
-		if p.stack.Cur().rule.AstFunc != nil {
-			foo := p.stack.Cur().rule.AstFunc(e)
-			//fmt.Printf("%s\n", foo)
-			p.stack.Cur().astNode = foo
-		}
-	*/
-	p.stack.Cur().astNode = e
+	var astNode ast.Node
+	if p.stack.Cur().rule.AstFunc != nil {
+		astNode = p.stack.Cur().rule.AstFunc()
+	} else {
+		astNode = ast.NewNode(rule.Name)
+	}
+	p.stack.Cur().astNode = astNode
 	ok, err := p.parseGroup(rule.ParserHints, true)
 	if err != nil {
 		return false, err
@@ -213,10 +211,10 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	p.stack.Remove()
 	if ok {
 		if p.stack.Cur() != nil {
-			p.stack.Cur().astNode.AddChild(e)
+			p.stack.Cur().astNode.AddChild(astNode)
 		} else if sendChannel {
-			util.DumpJson(e, "sending root element:\n")
-			p.commandChan <- e
+			util.DumpJson(astNode, "sending AST:\n")
+			p.commandChan <- astNode
 		}
 	} else {
 		if curStackEntry.final {
