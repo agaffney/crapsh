@@ -126,7 +126,8 @@ func init() {
 			},
 		},
 		{
-			Name: `simple_command`,
+			Name:    `simple_command`,
+			AstFunc: ast.NewSimpleCommand,
 			ParserHints: []*ParserHint{
 				{
 					Type: HINT_TYPE_ANY,

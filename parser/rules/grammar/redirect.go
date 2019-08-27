@@ -10,11 +10,6 @@ func init() {
 			Name: `io_redirect`,
 			ParserHints: []*ParserHint{
 				{
-					Type:       HINT_TYPE_TOKEN,
-					Optional:   true,
-					TokenTypes: []int{tokens.TOKEN_IO_NUMBER},
-				},
-				{
 					Type: HINT_TYPE_ANY,
 					Members: []*ParserHint{
 						{
@@ -32,6 +27,11 @@ func init() {
 		{
 			Name: `io_file`,
 			ParserHints: []*ParserHint{
+				{
+					Type:       HINT_TYPE_TOKEN,
+					Optional:   true,
+					TokenTypes: []int{tokens.TOKEN_IO_NUMBER},
+				},
 				{
 					Type: HINT_TYPE_TOKEN,
 					TokenTypes: []int{
@@ -53,6 +53,11 @@ func init() {
 		{
 			Name: `io_here`,
 			ParserHints: []*ParserHint{
+				{
+					Type:       HINT_TYPE_TOKEN,
+					Optional:   true,
+					TokenTypes: []int{tokens.TOKEN_IO_NUMBER},
+				},
 				{
 					Type:       HINT_TYPE_TOKEN,
 					TokenTypes: []int{tokens.TOKEN_DLESS, tokens.TOKEN_DLESSDASH},
