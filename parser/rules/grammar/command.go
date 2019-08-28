@@ -138,15 +138,14 @@ func init() {
 								{
 									Type:     HINT_TYPE_RULE,
 									RuleName: `cmd_prefix`,
-									Many:     true,
 								},
 								{
 									Type:     HINT_TYPE_GROUP,
 									Optional: true,
 									Members: []*ParserHint{
 										{
-											Type:     HINT_TYPE_RULE,
-											RuleName: `cmd_word`,
+											Type:       HINT_TYPE_TOKEN,
+											TokenTypes: []int{tokens.TOKEN_WORD},
 										},
 										{
 											Type:     HINT_TYPE_RULE,
@@ -180,6 +179,7 @@ func init() {
 			ParserHints: []*ParserHint{
 				{
 					Type: HINT_TYPE_ANY,
+					Many: true,
 					Members: []*ParserHint{
 						{
 							Type:       HINT_TYPE_TOKEN,

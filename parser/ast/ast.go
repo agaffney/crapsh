@@ -7,6 +7,7 @@ import (
 type Node interface {
 	GetName() string
 	AddToken(*lexer.Token)
+	GetToken() *lexer.Token
 	AddChild(Node)
 	GetChildren() []Node
 }
@@ -31,6 +32,11 @@ func (n *NodeBase) AddToken(token *lexer.Token) {
 	n.AddChild(w)
 }
 
+func (n *NodeBase) GetToken() *lexer.Token {
+	// Not implemented in NodeBase
+	return nil
+}
+
 func (n *NodeBase) AddChild(node Node) {
 	n.Nodes = append(n.Nodes, node)
 }
@@ -45,6 +51,10 @@ type Word struct {
 }
 
 func NewWord(token *lexer.Token) Node {
-	w := &Word{NodeBase: NodeBase{Name: `word`}, Token: token}
+	w := &Word{NodeBase: NodeBase{Name: `Word`}, Token: token}
 	return w
+}
+
+func (w *Word) GetToken() *lexer.Token {
+	return w.Token
 }

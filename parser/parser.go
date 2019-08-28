@@ -6,7 +6,7 @@ import (
 	parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/parser/lexer"
 	"github.com/agaffney/crapsh/parser/rules/grammar"
-	"github.com/agaffney/crapsh/util"
+	//"github.com/agaffney/crapsh/util"
 	"io"
 )
 
@@ -141,6 +141,7 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 	}
 	//util.DumpObject(p.curToken(), "parseToken(): curToken = ")
 	tokenType := p.classifyToken(token, hint)
+	//fmt.Printf("classifyToken() returned type %d\n", tokenType)
 	if reservedRule := p.checkTokenIsReserved(tokenType); reservedRule != nil {
 		if !reservedRule.DisallowReservedFollow {
 			p.stack.Cur().allowNextWordReserved = true
@@ -154,6 +155,9 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 		}
 	}
 	if tokenMatch {
+		// TODO: provide method to roll back to TOKEN_NULL if the current rule doesn't
+		// match, perhaps by passing a copy of the token instead of the original
+		token.Type = tokenType
 		p.stack.Cur().astNode.AddToken(token)
 		return true, nil
 	}
@@ -213,7 +217,7 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 		if p.stack.Cur() != nil {
 			p.stack.Cur().astNode.AddChild(astNode)
 		} else if sendChannel {
-			util.DumpJson(astNode, "sending AST:\n")
+			//util.DumpJson(astNode, "sending AST:\n")
 			p.commandChan <- astNode
 		}
 	} else {

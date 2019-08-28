@@ -1,13 +1,15 @@
 package grammar
 
 import (
+	"github.com/agaffney/crapsh/parser/ast"
 	"github.com/agaffney/crapsh/parser/tokens"
 )
 
 func init() {
 	registerRules([]*GrammarRule{
 		{
-			Name: `io_redirect`,
+			Name:    `io_redirect`,
+			AstFunc: ast.NewIoRedirect,
 			ParserHints: []*ParserHint{
 				{
 					Type: HINT_TYPE_ANY,
