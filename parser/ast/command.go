@@ -8,13 +8,69 @@ import (
 	"strings"
 )
 
-type Command struct {
+type CompleteCommand struct {
 	NodeBase
+	Background bool // whether to background the command
+	Pipelines  []Node
 }
 
-func NewCommand() Node {
-	c := &Command{NodeBase: NodeBase{Name: `Command`}}
+func NewCompleteCommand() Node {
+	c := &CompleteCommand{NodeBase: NodeBase{Name: `CompleteCommand`}}
+	c.Pipelines = make([]Node, 0)
 	return c
+}
+
+func (c *CompleteCommand) AddChild(node Node) {
+	switch node.GetName() {
+	case `and_or`:
+		for _, tmpNode := range node.GetChildren() {
+			c.AddChild(tmpNode)
+		}
+	case `Pipeline`:
+		c.Pipelines = append(c.Pipelines, node)
+	case `separator_op`:
+		for _, tmpNode := range node.GetChildren() {
+			c.AddChild(tmpNode)
+		}
+	case `Word`:
+		if node.GetToken().Type == tokens.TOKEN_AND {
+			c.Background = true
+		} else {
+			c.Pipelines[len(c.Pipelines)-1].AddChild(node)
+		}
+	}
+}
+
+type Pipeline struct {
+	NodeBase
+	Bang       bool
+	Commands   []Node
+	AndOrToken *lexer.Token // token with &&/|| suffix
+}
+
+func NewPipeline() Node {
+	p := &Pipeline{NodeBase: NodeBase{Name: `Pipeline`}}
+	p.Commands = make([]Node, 0)
+	return p
+}
+
+func (p *Pipeline) AddChild(node Node) {
+	switch node.GetName() {
+	case `Word`:
+		if node.GetToken().Type == tokens.TOKEN_BANG {
+			p.Bang = true
+		} else {
+			p.AndOrToken = node.GetToken()
+		}
+	case `command`:
+		for _, tmpNode := range node.GetChildren() {
+			p.AddChild(tmpNode)
+		}
+	case `linebreak`:
+		// Purposely empty
+	default:
+		p.Commands = append(p.Commands, node)
+	}
 }
 
 type Assignment struct {

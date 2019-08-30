@@ -9,7 +9,7 @@ func init() {
 	registerRules([]*GrammarRule{
 		{
 			Name:    `complete_command`,
-			AstFunc: ast.NewCommand,
+			AstFunc: ast.NewCompleteCommand,
 			ParserHints: []*ParserHint{
 				{
 					Type: HINT_TYPE_GROUP,
@@ -56,9 +56,9 @@ func init() {
 				},
 			},
 		},
-		// 'pipeline' and 'pipe_sequence' have been merged together
 		{
-			Name: `pipeline`,
+			Name:    `pipeline`,
+			AstFunc: ast.NewPipeline,
 			ParserHints: []*ParserHint{
 				{
 					Type:       HINT_TYPE_TOKEN,
