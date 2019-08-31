@@ -41,14 +41,12 @@ func (l *Lexer) Reset() {
 	l.mode = MODE_NORMAL
 }
 
-func (l *Lexer) Start() {
-	l.Reset()
-	// TODO: check for error
-	l.readLine(false)
-}
-
 func (l *Lexer) SetMode(mode int) {
 	l.mode = mode
+}
+
+func (l *Lexer) ReadLine() error {
+	return l.readLine(false)
 }
 
 func (l *Lexer) readLine(continuation bool) error {

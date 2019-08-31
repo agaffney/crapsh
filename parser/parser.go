@@ -22,7 +22,7 @@ func NewParser(input parser_input.Input) *Parser {
 	parser := &Parser{input: input}
 	parser.lexer = lexer.New(input)
 	parser.Reset()
-	parser.lexer.Start()
+	parser.lexer.ReadLine()
 	return parser
 }
 
@@ -44,8 +44,10 @@ func (p *Parser) GetCommand() (ast.Node, error) {
 	if !ok {
 		if p.input.IsAvailable() {
 			p.Reset()
-			// Restart the lexer to keep pulling from the input
-			p.lexer.Start()
+			err := p.lexer.ReadLine()
+			if err != nil {
+				return nil, err
+			}
 			// Try again
 			return p.GetCommand()
 		} else {
@@ -103,6 +105,7 @@ func (p *Parser) parseToken(hint *grammar.ParserHint) (bool, error) {
 	token, err := p.nextToken()
 	if err != nil {
 		if err == io.EOF {
+			// TODO: return "unexpected EOF" error?
 			return false, nil
 		}
 		return false, err

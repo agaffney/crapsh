@@ -21,13 +21,12 @@ func runTests(testCases []splitterTestCase, t *testing.T) {
 	for _, test_case := range testCases {
 		lexer := New(parser_input.NewStringParserInput(test_case.input))
 		lexer.Reset()
-		lexer.Start()
+		lexer.ReadLine()
 		for idx, expected := range test_case.output {
 			token, err := lexer.ReadToken()
 			if err != nil {
 				if err == io.EOF {
-					// Restart lexer to read another line
-					lexer.Start()
+					lexer.ReadLine()
 					// Read a new token if we didn't get one before
 					if token == nil {
 						var err2 error
