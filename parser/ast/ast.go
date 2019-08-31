@@ -19,7 +19,6 @@ type NodeBase struct {
 
 func NewNode(name string) *NodeBase {
 	n := &NodeBase{Name: name}
-	n.Nodes = make([]Node, 0)
 	return n
 }
 

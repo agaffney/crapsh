@@ -1,7 +1,6 @@
 package ast
 
 import (
-	//"fmt"
 	"github.com/agaffney/crapsh/parser/lexer"
 	"github.com/agaffney/crapsh/parser/tokens"
 	"strconv"
@@ -43,7 +42,7 @@ func (c *CompleteCommand) AddChild(node Node) {
 
 type Pipeline struct {
 	NodeBase
-	Bang       bool
+	Bang       bool // whether ! appears before pipeline
 	Commands   []Node
 	AndOrToken *lexer.Token // token with &&/|| suffix
 }
