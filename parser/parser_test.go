@@ -23,8 +23,7 @@ type parserTestCase struct {
 }
 
 func setupParser(input string) *Parser {
-	p := NewParser()
-	p.Start(parser_input.NewStringParserInput(input))
+	p := NewParser(parser_input.NewStringParserInput(input))
 	return p
 }
 

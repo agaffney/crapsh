@@ -28,23 +28,21 @@ type Token struct {
 	Value   string
 }
 
-func New() *Lexer {
-	l := &Lexer{}
+func New(input parser_input.Input) *Lexer {
+	l := &Lexer{input: input}
 	l.Reset()
 	return l
 }
 
 func (l *Lexer) Reset() {
 	l.lineBuf = bytes.NewBuffer(nil)
-	l.input = nil
 	l.lineNum = 1
 	l.lineOffset = 1
 	l.mode = MODE_NORMAL
 }
 
-func (l *Lexer) Start(input parser_input.Input) {
+func (l *Lexer) Start() {
 	l.Reset()
-	l.input = input
 	// TODO: check for error
 	l.readLine(false)
 }

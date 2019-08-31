@@ -4,6 +4,7 @@ import (
 	"fmt"
 	core_input "github.com/agaffney/crapsh/core/input"
 	"github.com/agaffney/crapsh/parser"
+	parser_input "github.com/agaffney/crapsh/parser/input"
 	"github.com/agaffney/crapsh/util"
 	"os"
 )
@@ -14,15 +15,15 @@ type State struct {
 }
 
 func New(config *Config) *State {
-	state := &State{config: config, parser: parser.NewParser()}
+	state := &State{config: config}
 	return state
 }
 
 func (state *State) Start() {
+	var input parser_input.Input
 	if state.config.CommandProvided {
 		// Command provided via -c option
-		input := core_input.NewCmdline(state.config.Command)
-		state.parser.Start(input)
+		input = core_input.NewCmdline(state.config.Command)
 	} else if state.config.FileProvided && !state.config.ReadFromStdin {
 		// Read commands from STDIN (-s option)
 		/*
@@ -37,9 +38,9 @@ func (state *State) Start() {
 		*/
 	} else {
 		// Interactive input
-		input := core_input.NewInteractive()
-		state.parser.Start(input)
+		input = core_input.NewInteractive()
 	}
+	state.parser = parser.NewParser(input)
 	state.processCommands()
 	os.Exit(0)
 }

@@ -11,67 +11,48 @@ import (
 )
 
 type Parser struct {
-	input       parser_input.Input
-	stack       *Stack
-	tokenBuf    []*lexer.Token
-	tokenIdx    int
-	commandChan chan ast.Node
-	errorChan   chan error
-	lexer       *lexer.Lexer
+	input    parser_input.Input
+	stack    *Stack
+	tokenBuf []*lexer.Token
+	tokenIdx int
+	lexer    *lexer.Lexer
 }
 
-func NewParser() *Parser {
-	parser := &Parser{}
-	parser.lexer = lexer.New()
+func NewParser(input parser_input.Input) *Parser {
+	parser := &Parser{input: input}
+	parser.lexer = lexer.New(input)
+	parser.Reset()
+	parser.lexer.Start()
 	return parser
 }
 
 func (p *Parser) Reset() {
-	p.commandChan = make(chan ast.Node)
-	p.errorChan = make(chan error)
 	p.stack = &Stack{parser: p}
 	p.lexer.Reset()
 	p.tokenBuf = make([]*lexer.Token, 0)
 	p.tokenIdx = -1
 }
 
-func (p *Parser) Start(input parser_input.Input) {
-	p.Reset()
-	p.lexer.Start(input)
-	go func() {
-		for {
-			//fmt.Printf("p.stack = %#v\n", p.stack)
-			// Reset the hint stack
-			p.stack.Reset()
-			// Start parsing with "root" element
-			ok, err := p.parseRule(`complete_command`, true)
-			if err != nil {
-				p.errorChan <- err
-				close(p.errorChan)
-				break
-			}
-			// EOF (?)
-			if !ok {
-				if input.IsAvailable() {
-					p.Reset()
-					// Restart the lexer to keep pulling from the input
-					p.lexer.Start(input)
-				} else {
-					break
-				}
-			}
-		}
-		close(p.commandChan)
-	}()
-}
-
 func (p *Parser) GetCommand() (ast.Node, error) {
-	select {
-	case err := <-p.errorChan:
+	// Reset the hint stack
+	p.stack.Reset()
+	// Start parsing with "root" element
+	ok, err, commandNode := p.parseRule(`complete_command`)
+	if err != nil {
 		return nil, err
-	case cmd := <-p.commandChan:
-		return cmd, nil
 	}
+	if !ok {
+		if p.input.IsAvailable() {
+			p.Reset()
+			// Restart the lexer to keep pulling from the input
+			p.lexer.Start()
+			// Try again
+			return p.GetCommand()
+		} else {
+			return nil, nil
+		}
+	}
+	return commandNode, nil
 }
 
 // Handles an individual parser hint
@@ -86,7 +67,7 @@ func (p *Parser) parseHandleHint(hint *grammar.ParserHint) (bool, error) {
 		origTokenIdx = p.getTokenIdx()
 		switch {
 		case hint.Type == grammar.HINT_TYPE_RULE:
-			ok, err = p.parseRule(hint.RuleName, false)
+			ok, err, _ = p.parseRule(hint.RuleName)
 		case hint.Type == grammar.HINT_TYPE_ANY:
 			ok, err = p.parseAny(hint.Members)
 		case hint.Type == grammar.HINT_TYPE_GROUP:
@@ -175,12 +156,12 @@ func (p *Parser) parseGroup(hints []*grammar.ParserHint, updateHintIdx bool) (bo
 }
 
 // Handles a 'rule' parser hint
-func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
+func (p *Parser) parseRule(ruleName string) (bool, error, ast.Node) {
 	rule := grammar.GetRule(ruleName)
 	//util.DumpObject(rule, "parseRule(): rule = ")
 	if rule == nil {
 		// TODO: make this an error once the grammar is completed
-		return false, nil
+		return false, nil, nil
 	}
 	p.stack.Add(rule)
 	if rule.AllowFirstWordReserved {
@@ -196,26 +177,26 @@ func (p *Parser) parseRule(ruleName string, sendChannel bool) (bool, error) {
 	p.stack.Cur().astNode = astNode
 	ok, err := p.parseGroup(rule.ParserHints, true)
 	if err != nil {
-		return false, err
+		return false, err, nil
 	}
 	curStackEntry := p.stack.Cur()
 	p.stack.Remove()
 	if ok {
-		if p.stack.Cur() != nil {
-			p.stack.Cur().astNode.AddChild(astNode)
-		} else if sendChannel {
-			//util.DumpJson(astNode, "sending AST:\n")
-			p.commandChan <- astNode
+		// Return the node if we've reached the bottom of the parser stack
+		if p.stack.Cur() == nil {
+			return true, nil, astNode
 		}
+		p.stack.Cur().astNode.AddChild(astNode)
 	} else {
 		if curStackEntry.final {
 			token, _ := p.nextToken()
 			if token != nil {
-				return ok, fmt.Errorf("found unexpected token `%s` at line %d, offset %d", token.Value, token.LineNum, token.Offset)
+				err := fmt.Errorf("found unexpected token `%s` at line %d, offset %d", token.Value, token.LineNum, token.Offset)
+				return ok, err, nil
 			}
 		}
 	}
-	return ok, nil
+	return ok, nil, nil
 }
 
 // Handles an 'any' parser hint
