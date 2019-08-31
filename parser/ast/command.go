@@ -40,6 +40,10 @@ func (c *CompleteCommand) AddChild(node Node) {
 	}
 }
 
+func (c *CompleteCommand) GetChildren() []Node {
+	return c.Pipelines
+}
+
 type Pipeline struct {
 	NodeBase
 	Bang       bool // whether ! appears before pipeline
@@ -51,6 +55,10 @@ func NewPipeline() Node {
 	p := &Pipeline{NodeBase: NodeBase{Name: `Pipeline`}}
 	p.Commands = make([]Node, 0)
 	return p
+}
+
+func (p *Pipeline) AddToken(token *lexer.Token) {
+	// Empty function to discard pipe character
 }
 
 func (p *Pipeline) AddChild(node Node) {
@@ -70,6 +78,10 @@ func (p *Pipeline) AddChild(node Node) {
 	default:
 		p.Commands = append(p.Commands, node)
 	}
+}
+
+func (p *Pipeline) GetChildren() []Node {
+	return p.Commands
 }
 
 type Assignment struct {
@@ -185,5 +197,12 @@ func (c *SimpleCommand) AddChild(node Node) {
 	default:
 		c.Nodes = append(c.Nodes, node)
 	}
+}
 
+func (c *SimpleCommand) GetChildren() []Node {
+	var ret []Node
+	ret = append(ret, c.Assignments...)
+	ret = append(ret, c.Words...)
+	ret = append(ret, c.Redirects...)
+	return ret
 }
