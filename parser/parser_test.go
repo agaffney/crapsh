@@ -51,7 +51,8 @@ func getTestCaseOutputs(output parserTestCaseOutput) []parserTestCaseOutput {
 func runTests(testCases []parserTestCase, t *testing.T) {
 	for _, testCase := range testCases {
 		p := setupParser(testCase.input)
-		for cmd_idx := 0; ; cmd_idx++ {
+		cmd_idx := -1
+		for {
 			command, err := p.GetCommand()
 			if err != nil {
 				if err == io.EOF {
@@ -63,6 +64,7 @@ func runTests(testCases []parserTestCase, t *testing.T) {
 			if command == nil {
 				break
 			}
+			cmd_idx++
 			//util.DumpJson(command, "command = ")
 			nodes := getNodeChildren(command)
 			if cmd_idx >= len(testCase.outputs) {
@@ -88,21 +90,16 @@ func runTests(testCases []parserTestCase, t *testing.T) {
 				}
 			}
 			if len(outputs) < len(nodes) {
-				t.Fatalf("more AST nodes found than expected. next node: %#v", nodes[len(outputs)])
+				t.Fatalf("more AST nodes found than expected. next node: %#v, next token: %#v", nodes[len(outputs)], nodes[len(outputs)].GetToken())
 			}
+		}
+		if cmd_idx < len(testCase.outputs)-1 {
+			t.Fatalf("less commands than expected")
 		}
 	}
 }
 
 func TestParserBasic(t *testing.T) {
-	/*
-		test_inputs := []string{
-			"foo $(echo bar foo bar) baz\nabc \"123 456\" 'd\nef' 789",
-		}
-		for _, input := range test_inputs {
-			parser.Parse(strings.NewReader(input))
-		}
-	*/
 	testCases := []parserTestCase{
 		{
 			input: `echo foo bar`,
@@ -130,6 +127,76 @@ func TestParserBasic(t *testing.T) {
 											nodeName:   `Word`,
 											tokenType:  tokens.TOKEN_WORD,
 											tokenValue: `bar`,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			input: "foo $(echo bar foo bar) baz\nabc \"123 456\" 'd\nef' 789",
+			outputs: []parserTestCaseOutput{
+				{
+					nodeName: `CompleteCommand`,
+					children: []parserTestCaseOutput{
+						{
+							nodeName: `Pipeline`,
+							children: []parserTestCaseOutput{
+								{
+									nodeName: `SimpleCommand`,
+									children: []parserTestCaseOutput{
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: `foo`,
+										},
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: `$(echo bar foo bar)`,
+										},
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: `baz`,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					nodeName: `CompleteCommand`,
+					children: []parserTestCaseOutput{
+						{
+							nodeName: `Pipeline`,
+							children: []parserTestCaseOutput{
+								{
+									nodeName: `SimpleCommand`,
+									children: []parserTestCaseOutput{
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: `abc`,
+										},
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: `"123 456"`,
+										},
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: "'d\nef'",
+										},
+										{
+											nodeName:   `Word`,
+											tokenType:  tokens.TOKEN_WORD,
+											tokenValue: `789`,
 										},
 									},
 								},

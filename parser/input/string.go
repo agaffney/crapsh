@@ -20,5 +20,6 @@ func (i *StringParserInput) ReadLine(continuation bool) (string, error) {
 }
 
 func (i *StringParserInput) IsAvailable() bool {
-	return (i.input.Buffered() > 0)
+	foo, _ := i.input.Peek(1)
+	return (len(foo) > 0)
 }

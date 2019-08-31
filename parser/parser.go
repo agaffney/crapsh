@@ -31,39 +31,20 @@ func (p *Parser) Reset() {
 	p.errorChan = make(chan error)
 	p.stack = &Stack{parser: p}
 	p.lexer.Reset()
+	p.tokenBuf = make([]*lexer.Token, 0)
+	p.tokenIdx = -1
 }
 
 func (p *Parser) Start(input parser_input.Input) {
 	p.Reset()
 	p.lexer.Start(input)
-	/*
-		for {
-			token, err := p.lexer.ReadToken()
-			fmt.Printf("token = %#v\n", token)
-			if err != nil {
-				if err == io.EOF {
-					if input.IsAvailable() {
-						// Restart the lexer to keep pulling from the input
-						p.lexer.Start(input)
-					} else {
-						os.Exit(0)
-					}
-				} else {
-					log.Fatal(err)
-				}
-			}
-		}
-		return
-	*/
-	p.tokenBuf = make([]*lexer.Token, 0)
-	p.tokenIdx = -1
 	go func() {
 		for {
 			//fmt.Printf("p.stack = %#v\n", p.stack)
 			// Reset the hint stack
 			p.stack.Reset()
 			// Start parsing with "root" element
-			ok, err := p.parseRule(`complete_command`, true) // "BasicCommand"
+			ok, err := p.parseRule(`complete_command`, true)
 			if err != nil {
 				p.errorChan <- err
 				close(p.errorChan)
@@ -71,7 +52,13 @@ func (p *Parser) Start(input parser_input.Input) {
 			}
 			// EOF (?)
 			if !ok {
-				break
+				if input.IsAvailable() {
+					p.Reset()
+					// Restart the lexer to keep pulling from the input
+					p.lexer.Start(input)
+				} else {
+					break
+				}
 			}
 		}
 		close(p.commandChan)
