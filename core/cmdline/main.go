@@ -3,20 +3,21 @@ package cmdline
 import (
 	"github.com/agaffney/crapsh/core"
 	"github.com/agaffney/crapsh/core/cmdline/parser"
+	"github.com/agaffney/crapsh/core/config"
 	"github.com/agaffney/crapsh/core/flags"
 	"os"
 	"path"
 )
 
 func Main() {
-	c := &core.Config{}
+	c := &config.Config{}
 	c.Binary = path.Base(os.Args[0])
 	parseCmdlineOpts(c)
-	state := core.NewState(c)
-	state.Run()
+	core := core.New(c)
+	core.Run()
 }
 
-func parseCmdlineOpts(c *core.Config) error {
+func parseCmdlineOpts(c *config.Config) error {
 	inputOptions := parser.OptionSet{}
 	for _, flag := range flags.Flags {
 		if flag.Short == `` && !flag.CmdlineOnly {

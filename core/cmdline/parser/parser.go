@@ -33,7 +33,7 @@ func (o *OptionSet) Options() []*Option {
 	return o.options
 }
 
-func (o OptionSet) FindOption(flag string, shellFlag bool) *Option {
+func (o *OptionSet) FindOption(flag string, shellFlag bool) *Option {
 	flagLen := len(flag)
 	for _, option := range o.options {
 		if flagLen == 1 && option.Short == flag {
@@ -49,19 +49,23 @@ func (o OptionSet) FindOption(flag string, shellFlag bool) *Option {
 	return nil
 }
 
-func copyOption(src *Option) *Option {
-	newOption := &Option{}
-	newOption.Type = src.Type
-	newOption.Short = src.Short
-	newOption.Long = src.Long
-	newOption.Set = src.Set
-	newOption.Value = src.Value
-	newOption.Arg = src.Arg
-	return newOption
+func (o *OptionSet) Copy() *OptionSet {
+	newOptionSet := &OptionSet{}
+	for _, option := range o.Options() {
+		newOption := &Option{}
+		newOption.Type = option.Type
+		newOption.Short = option.Short
+		newOption.Long = option.Long
+		newOption.Set = option.Set
+		newOption.Value = option.Value
+		newOption.Arg = option.Arg
+		newOptionSet.Add([]*Option{newOption})
+	}
+	return newOptionSet
 }
 
 func Parse(options OptionSet) (*OptionSet, []string, error) {
-	newOptionSet := &OptionSet{}
+	newOptionSet := options.Copy()
 	doneWithOptions := false
 	expectingArg := false
 	var prevOption *Option
@@ -77,18 +81,16 @@ func Parse(options OptionSet) (*OptionSet, []string, error) {
 				doneWithOptions = true
 				continue
 			}
-			option := options.FindOption(arg[2:], false)
+			option := newOptionSet.FindOption(arg[2:], false)
 			if option == nil {
 				return nil, nil, fmt.Errorf("unknown option: %s", arg)
 			}
-			newOption := copyOption(option)
-			newOption.Set = true
-			if newOption.Type == TYPE_ARG {
+			option.Set = true
+			if option.Type == TYPE_ARG {
 				expectingArg = true
-				prevOption = newOption
+				prevOption = option
 				prevOptionDisplay = arg
 			}
-			newOptionSet.Add([]*Option{newOption})
 		} else if arg[0] == '-' || arg[0] == '+' {
 			if len(arg) == 1 {
 				args = append(args, arg)
@@ -103,7 +105,7 @@ func Parse(options OptionSet) (*OptionSet, []string, error) {
 				shellFlag = true
 			}
 			for _, flag := range arg[1:] {
-				option := options.FindOption(string(flag), shellFlag)
+				option := newOptionSet.FindOption(string(flag), shellFlag)
 				if option == nil {
 					// Append to args if it's a lone + flag that doesn't match an option
 					if arg[0] == '+' && len(arg) == 2 {
@@ -112,26 +114,16 @@ func Parse(options OptionSet) (*OptionSet, []string, error) {
 					}
 					return nil, nil, fmt.Errorf("unknown option: %c%c", arg[0], flag)
 				}
-				foundExisting := false
-				newOption := newOptionSet.FindOption(string(flag), false)
-				if newOption == nil {
-					newOption = copyOption(option)
-				} else {
-					foundExisting = true
-				}
-				newOption.Set = true
+				option.Set = true
 				if arg[0] == '-' {
-					newOption.Value = true
+					option.Value = true
 				} else {
-					newOption.Value = false
+					option.Value = false
 				}
-				if newOption.Type == TYPE_ARG {
+				if option.Type == TYPE_ARG {
 					expectingArg = true
-					prevOption = newOption
+					prevOption = option
 					prevOptionDisplay = fmt.Sprintf("%c%c", arg[0], flag)
-				}
-				if !foundExisting {
-					newOptionSet.Add([]*Option{newOption})
 				}
 			}
 		} else {

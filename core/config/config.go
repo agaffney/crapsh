@@ -1,4 +1,4 @@
-package core
+package config
 
 type Config struct {
 	Binary          string
