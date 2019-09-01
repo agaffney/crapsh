@@ -72,7 +72,7 @@ func Parse(options OptionSet) (*OptionSet, []string, error) {
 			args = append(args, arg)
 			continue
 		}
-		if arg[0:1] == `--` {
+		if arg[0:2] == `--` {
 			if len(arg) == 2 {
 				doneWithOptions = true
 				continue
@@ -105,9 +105,20 @@ func Parse(options OptionSet) (*OptionSet, []string, error) {
 			for _, flag := range arg[1:] {
 				option := options.FindOption(string(flag), shellFlag)
 				if option == nil {
+					// Append to args if it's a lone + flag that doesn't match an option
+					if arg[0] == '+' && len(arg) == 2 {
+						args = append(args, arg)
+						continue
+					}
 					return nil, nil, fmt.Errorf("unknown option: %c%c", arg[0], flag)
 				}
-				newOption := copyOption(option)
+				foundExisting := false
+				newOption := newOptionSet.FindOption(string(flag), false)
+				if newOption == nil {
+					newOption = copyOption(option)
+				} else {
+					foundExisting = true
+				}
 				newOption.Set = true
 				if arg[0] == '-' {
 					newOption.Value = true
@@ -119,7 +130,9 @@ func Parse(options OptionSet) (*OptionSet, []string, error) {
 					prevOption = newOption
 					prevOptionDisplay = fmt.Sprintf("%c%c", arg[0], flag)
 				}
-				newOptionSet.Add([]*Option{newOption})
+				if !foundExisting {
+					newOptionSet.Add([]*Option{newOption})
+				}
 			}
 		} else {
 			if expectingArg {

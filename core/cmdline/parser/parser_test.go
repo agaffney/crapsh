@@ -12,10 +12,11 @@ type parserTestCaseFlag struct {
 }
 
 type parserTestCase struct {
-	input   []string
-	options OptionSet
-	flags   []parserTestCaseFlag
-	args    []string
+	input    []string
+	options  OptionSet
+	flags    []parserTestCaseFlag
+	args     []string
+	errorMsg string
 }
 
 func runTests(testCases []parserTestCase, t *testing.T) {
@@ -24,7 +25,14 @@ func runTests(testCases []parserTestCase, t *testing.T) {
 		os.Args = append(os.Args, testCase.input...)
 		options, args, err := Parse(testCase.options)
 		if err != nil {
-			t.Fatalf("unexpected error: %s", err.Error())
+			if testCase.errorMsg != "" {
+				if err.Error() == testCase.errorMsg {
+					continue
+				}
+				t.Fatalf("expected error: `%s`, got: `%s`", testCase.errorMsg, err.Error())
+			} else {
+				t.Fatalf("unexpected error: %s", err.Error())
+			}
 		}
 		argsMatch := true
 		if len(args) != len(testCase.args) {
@@ -99,6 +107,115 @@ func TestParserBasic(t *testing.T) {
 					value: true,
 				},
 			},
+		},
+	}
+	runTests(testCases, t)
+}
+
+func TestParserShellFlags(t *testing.T) {
+	commonOptions := OptionSet{}
+	commonOptions.Add([]*Option{
+		{Short: `a`, Long: `apple`},
+		{Short: `b`, Type: TYPE_SHELL_FLAG},
+		{Short: `d`, Type: TYPE_SHELL_FLAG},
+	})
+	testCases := []parserTestCase{
+		{
+			input:   []string{`-b`, `-d`},
+			options: commonOptions,
+			flags: []parserTestCaseFlag{
+				{flag: `b`, value: true},
+				{flag: `d`, value: true},
+			},
+		},
+		{
+			input:   []string{`-b`, `+d`},
+			options: commonOptions,
+			flags: []parserTestCaseFlag{
+				{flag: `b`, value: true},
+				{flag: `d`, value: false},
+			},
+		},
+		{
+			input:   []string{`-b`, `+d`, `+a`},
+			options: commonOptions,
+			flags: []parserTestCaseFlag{
+				{
+					flag:  `b`,
+					value: true,
+				},
+				{
+					flag:  `d`,
+					value: false,
+				},
+			},
+			args: []string{`+a`},
+		},
+		{
+			input:   []string{`-bd`, `+d`},
+			options: commonOptions,
+			flags: []parserTestCaseFlag{
+				{
+					flag:  `b`,
+					value: true,
+				},
+				{
+					flag:  `d`,
+					value: false,
+				},
+			},
+		},
+	}
+	runTests(testCases, t)
+}
+
+func TestParserErrors(t *testing.T) {
+	commonOptions := OptionSet{}
+	commonOptions.Add([]*Option{
+		{Short: `a`, Long: `apple`},
+		{Short: `b`, Type: TYPE_SHELL_FLAG},
+		{Short: `c`, Type: TYPE_ARG},
+	})
+	testCases := []parserTestCase{
+		{
+			input:    []string{`-z`},
+			options:  commonOptions,
+			errorMsg: `unknown option: -z`,
+		},
+		{
+			input:    []string{`--zoo`},
+			options:  commonOptions,
+			errorMsg: `unknown option: --zoo`,
+		},
+		{
+			input:    []string{`-a`, `-bz`},
+			options:  commonOptions,
+			errorMsg: `unknown option: -z`,
+		},
+		{
+			input:    []string{`+bz`},
+			options:  commonOptions,
+			errorMsg: `unknown option: +z`,
+		},
+		{
+			input:    []string{`-c`},
+			options:  commonOptions,
+			errorMsg: `-c: option requires an argument`,
+		},
+		{
+			input:    []string{`-c`},
+			options:  commonOptions,
+			errorMsg: `-c: option requires an argument`,
+		},
+		{
+			input:    []string{`-c`, `-a`},
+			options:  commonOptions,
+			errorMsg: `-c: option requires an argument`,
+		},
+		{
+			input:    []string{`-c`, `+b`},
+			options:  commonOptions,
+			errorMsg: `-c: option requires an argument`,
 		},
 	}
 	runTests(testCases, t)
