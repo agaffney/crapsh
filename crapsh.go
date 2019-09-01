@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/agaffney/crapsh/cmd"
+	"github.com/agaffney/crapsh/core/cmdline"
 )
 
 func main() {
-	cmd.Start()
+	cmdline.Main()
 }

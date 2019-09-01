@@ -1,4 +1,4 @@
-package cmd
+package cmdline
 
 import (
 	"github.com/agaffney/crapsh/core"
@@ -6,10 +6,10 @@ import (
 	"path"
 )
 
-func Start() {
+func Main() {
 	c := &core.Config{}
 	c.Binary = path.Base(os.Args[0])
 	parse_cmdline_opts(c)
 	state := core.New(c)
-	state.Start()
+	state.Run()
 }

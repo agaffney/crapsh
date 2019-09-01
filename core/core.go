@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/agaffney/crapsh/core/flags"
 	core_input "github.com/agaffney/crapsh/core/input"
 	"github.com/agaffney/crapsh/parser"
 	parser_input "github.com/agaffney/crapsh/parser/input"
@@ -12,6 +13,12 @@ import (
 type State struct {
 	parser *parser.Parser
 	config *Config
+	flags  []FlagState
+}
+
+type FlagState struct {
+	flags.Flag
+	set bool
 }
 
 func New(config *Config) *State {
@@ -19,7 +26,7 @@ func New(config *Config) *State {
 	return state
 }
 
-func (state *State) Start() {
+func (state *State) Run() {
 	var input parser_input.Input
 	if state.config.CommandProvided {
 		// Command provided via -c option
