@@ -21,7 +21,7 @@ type FlagState struct {
 	set bool
 }
 
-func New(config *Config) *State {
+func NewState(config *Config) *State {
 	state := &State{config: config}
 	return state
 }
