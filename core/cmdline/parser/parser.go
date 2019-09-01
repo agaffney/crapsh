@@ -49,7 +49,19 @@ func (o OptionSet) FindOption(flag string, shellFlag bool) *Option {
 	return nil
 }
 
-func Parse(options OptionSet) ([]string, error) {
+func copyOption(src *Option) *Option {
+	newOption := &Option{}
+	newOption.Type = src.Type
+	newOption.Short = src.Short
+	newOption.Long = src.Long
+	newOption.Set = src.Set
+	newOption.Value = src.Value
+	newOption.Arg = src.Arg
+	return newOption
+}
+
+func Parse(options OptionSet) (*OptionSet, []string, error) {
+	newOptionSet := &OptionSet{}
 	doneWithOptions := false
 	expectingArg := false
 	var prevOption *Option
@@ -67,14 +79,16 @@ func Parse(options OptionSet) ([]string, error) {
 			}
 			option := options.FindOption(arg[2:], false)
 			if option == nil {
-				return nil, fmt.Errorf("unknown option: %s", arg)
+				return nil, nil, fmt.Errorf("unknown option: %s", arg)
 			}
-			option.Set = true
-			if option.Type == TYPE_ARG {
+			newOption := copyOption(option)
+			newOption.Set = true
+			if newOption.Type == TYPE_ARG {
 				expectingArg = true
-				prevOption = option
+				prevOption = newOption
 				prevOptionDisplay = arg
 			}
+			newOptionSet.Add([]*Option{newOption})
 		} else if arg[0] == '-' || arg[0] == '+' {
 			if len(arg) == 1 {
 				args = append(args, arg)
@@ -82,7 +96,7 @@ func Parse(options OptionSet) ([]string, error) {
 				continue
 			}
 			if expectingArg {
-				return nil, fmt.Errorf("%s: option requires an argument", prevOptionDisplay)
+				return nil, nil, fmt.Errorf("%s: option requires an argument", prevOptionDisplay)
 			}
 			shellFlag := false
 			if arg[0] == '+' {
@@ -91,19 +105,21 @@ func Parse(options OptionSet) ([]string, error) {
 			for _, flag := range arg[1:] {
 				option := options.FindOption(string(flag), shellFlag)
 				if option == nil {
-					return nil, fmt.Errorf("unknown option: %c%c", arg[0], flag)
+					return nil, nil, fmt.Errorf("unknown option: %c%c", arg[0], flag)
 				}
-				option.Set = true
+				newOption := copyOption(option)
+				newOption.Set = true
 				if arg[0] == '-' {
-					option.Value = true
+					newOption.Value = true
 				} else {
-					option.Value = false
+					newOption.Value = false
 				}
-				if option.Type == TYPE_ARG {
+				if newOption.Type == TYPE_ARG {
 					expectingArg = true
-					prevOption = option
+					prevOption = newOption
 					prevOptionDisplay = fmt.Sprintf("%c%c", arg[0], flag)
 				}
+				newOptionSet.Add([]*Option{newOption})
 			}
 		} else {
 			if expectingArg {
@@ -115,7 +131,7 @@ func Parse(options OptionSet) ([]string, error) {
 		}
 	}
 	if expectingArg {
-		return nil, fmt.Errorf("%s: option requires an argument", prevOptionDisplay)
+		return nil, nil, fmt.Errorf("%s: option requires an argument", prevOptionDisplay)
 	}
-	return args, nil
+	return newOptionSet, args, nil
 }

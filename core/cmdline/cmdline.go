@@ -23,7 +23,7 @@ func (s *StringBool) String() string {
 }
 
 func parse_cmdline_opts(c *core.Config) error {
-	options := parser.OptionSet{}
+	inputOptions := parser.OptionSet{}
 	for _, flag := range flags.Flags {
 		if flag.Short == `` && !flag.CmdlineOnly {
 			continue
@@ -34,9 +34,9 @@ func parse_cmdline_opts(c *core.Config) error {
 		} else if flag.HasArg {
 			option.Type = parser.TYPE_ARG
 		}
-		options.Add([]*Option{option})
+		inputOptions.Add([]*parser.Option{option})
 	}
-	args, err := parser.Parse(options)
+	options, args, err := parser.Parse(inputOptions)
 	if err != nil {
 		return err
 	}

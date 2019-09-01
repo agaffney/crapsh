@@ -22,7 +22,7 @@ func runTests(testCases []parserTestCase, t *testing.T) {
 	for _, testCase := range testCases {
 		os.Args = []string{"test"}
 		os.Args = append(os.Args, testCase.input...)
-		args, err := Parse(testCase.options)
+		options, args, err := Parse(testCase.options)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err.Error())
 		}
@@ -39,7 +39,37 @@ func runTests(testCases []parserTestCase, t *testing.T) {
 		if !argsMatch {
 			t.Fatalf("expected args: %v, got: %v", testCase.args, args)
 		}
-		// TODO: check flags
+		// Check that all expected flags are set
+		for _, expected := range testCase.flags {
+			option := options.FindOption(expected.flag, false)
+			if !option.Set {
+				t.Fatalf("option '%s' did not have expected Set value, got: %t", expected.flag, option.Set)
+			}
+			if option.Type == TYPE_ARG {
+				if option.Arg != expected.arg {
+					t.Fatalf("option '%s' did not have expected Arg. expected: %s, got %s", expected.flag, expected.arg, option.Arg)
+				}
+			} else {
+				if option.Value != expected.value {
+					t.Fatalf("option '%s' did not have expected Value, got: %t", expected.flag, option.Value)
+				}
+			}
+		}
+		// Check for unexpected flags to be set
+		for _, option := range options.Options() {
+			if option.Set {
+				foundFlag := false
+				for _, flag := range testCase.flags {
+					if flag.flag == option.Short || flag.flag == option.Long {
+						foundFlag = true
+						break
+					}
+				}
+				if !foundFlag {
+					t.Fatalf("option '%s' was unexpectedly set", option.Short)
+				}
+			}
+		}
 	}
 }
 
@@ -65,7 +95,8 @@ func TestParserBasic(t *testing.T) {
 			options: commonOptions,
 			flags: []parserTestCaseFlag{
 				{
-					flag: `x`,
+					flag:  `x`,
+					value: true,
 				},
 			},
 		},
