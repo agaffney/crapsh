@@ -1,6 +1,7 @@
 package input
 
 import (
+	// TODO: maybe replace with https://github.com/fiorix/go-readline
 	"github.com/chzyer/readline"
 	"io"
 	"os"
@@ -40,7 +41,7 @@ func (i *Interactive) ReadLine(continuation bool) (string, error) {
 		i.readline.SetPrompt("> ")
 	} else {
 		// TODO: pull from $PS1
-		i.readline.SetPrompt("\033[31m»\033[0m ")
+		i.readline.SetPrompt("$ ") // \033[31m»\033[0m ")
 	}
 	line, err := i.readline.Readline()
 	if err != nil {
