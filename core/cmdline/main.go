@@ -34,7 +34,7 @@ func parseCmdlineOpts(c *config.Config) error {
 	inputOptions.Add([]*parser.Option{
 		{Long: `help`},
 	})
-	options, args, err := parser.Parse(inputOptions)
+	options, args, err := parser.Parse(inputOptions, os.Args[1:])
 	if err != nil {
 		return err
 	}

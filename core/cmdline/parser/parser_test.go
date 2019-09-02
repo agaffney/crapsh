@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"os"
 	"testing"
 )
 
@@ -21,9 +20,7 @@ type parserTestCase struct {
 
 func runTests(testCases []parserTestCase, t *testing.T) {
 	for _, testCase := range testCases {
-		os.Args = []string{"test"}
-		os.Args = append(os.Args, testCase.input...)
-		options, args, err := Parse(testCase.options)
+		options, args, err := Parse(testCase.options, testCase.input)
 		if err != nil {
 			if testCase.errorMsg != "" {
 				if err.Error() == testCase.errorMsg {

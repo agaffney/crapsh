@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"os"
 )
 
 const (
@@ -64,14 +63,14 @@ func (o *OptionSet) Copy() *OptionSet {
 	return newOptionSet
 }
 
-func Parse(options OptionSet) (*OptionSet, []string, error) {
+func Parse(options OptionSet, inputArgs []string) (*OptionSet, []string, error) {
 	newOptionSet := options.Copy()
 	doneWithOptions := false
 	expectingArg := false
 	var prevOption *Option
 	var prevOptionDisplay string
 	args := []string{}
-	for _, arg := range os.Args[1:] {
+	for _, arg := range inputArgs {
 		if doneWithOptions {
 			args = append(args, arg)
 			continue

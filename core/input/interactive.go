@@ -43,11 +43,6 @@ func (i *Interactive) ReadLine(continuation bool) (string, error) {
 		i.readline.SetPrompt("\033[31m»\033[0m ")
 	}
 	line, err := i.readline.Readline()
-	// TODO: do this elsewhere
-	// Hack to allow us to exit cleanly
-	if line == "logout" || line == "exit" {
-		os.Exit(0)
-	}
 	if err != nil {
 		if err == readline.ErrInterrupt {
 			return "", nil

@@ -7,6 +7,7 @@ import (
 type Builtin struct {
 	Name       string
 	Entrypoint EntrypointFunc
+	HelpText   string
 }
 
 type EntrypointFunc func(*state.State, []string) int

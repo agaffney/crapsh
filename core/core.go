@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/agaffney/crapsh/cmd/builtin"
 	"github.com/agaffney/crapsh/core/config"
-	//"github.com/agaffney/crapsh/core/flags"
+	"github.com/agaffney/crapsh/core/executor"
 	core_input "github.com/agaffney/crapsh/core/input"
 	"github.com/agaffney/crapsh/core/state"
 	"github.com/agaffney/crapsh/parser"
@@ -14,13 +14,15 @@ import (
 )
 
 type Core struct {
-	config *config.Config
-	state  *state.State
+	config   *config.Config
+	state    *state.State
+	executor *executor.Executor
 }
 
 func New(config *config.Config) *Core {
 	core := &Core{config: config}
 	core.state = state.New()
+	core.executor = executor.New()
 	return core
 }
 
@@ -58,7 +60,7 @@ func (core *Core) processCommands() {
 			os.Exit(1)
 		}
 		if cmd == nil {
-			fmt.Println("no more commands")
+			//fmt.Println("no more commands")
 			break
 		}
 		//util.DumpJson(cmd, "Command:\n")
@@ -70,18 +72,20 @@ func (core *Core) processCommands() {
 						args = append(args, node.GetToken().Value)
 					}
 				}
-				fmt.Printf("Args: %#v\n", args)
+				//fmt.Printf("Args: %#v\n", args)
 				foundBuiltin := false
 				for _, b := range builtin.Builtins {
 					if b.Name == args[0] {
 						foundBuiltin = true
 						ret := b.Entrypoint(core.state, args)
-						fmt.Printf("Returned %d\n", ret)
+						if false {
+							fmt.Printf("returned %d\n", ret)
+						}
 						break
 					}
 				}
 				if !foundBuiltin {
-					fmt.Printf("Command not found\n")
+					fmt.Printf("%s: %s: command not found\n", core.config.Binary, args[0])
 				}
 			}
 		}
