@@ -9,7 +9,7 @@ import (
 	"github.com/agaffney/crapsh/core/state"
 	"github.com/agaffney/crapsh/parser"
 	parser_input "github.com/agaffney/crapsh/parser/input"
-	//"github.com/agaffney/crapsh/util"
+	"github.com/agaffney/crapsh/util"
 	"os"
 )
 
@@ -63,7 +63,9 @@ func (core *Core) processCommands() {
 			//fmt.Println("no more commands")
 			break
 		}
-		//util.DumpJson(cmd, "Command:\n")
+		util.DumpJson(cmd, "Command (AST):\n")
+		completeCommand := executor.NewCompleteCommand(cmd)
+		util.DumpJson(completeCommand, "Complete command (executor):\n")
 		for _, pipeline := range cmd.GetChildren() {
 			for _, command := range pipeline.GetChildren() {
 				args := []string{}
