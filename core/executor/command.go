@@ -1,6 +1,9 @@
 package executor
 
 import (
+	"fmt"
+	"github.com/agaffney/crapsh/cmd/builtin"
+	"github.com/agaffney/crapsh/core/state"
 	"github.com/agaffney/crapsh/parser/ast"
 )
 
@@ -18,6 +21,30 @@ func NewCompleteCommand(astNode ast.Node) *CompleteCommand {
 		}
 	}
 	return c
+}
+
+func (c *CompleteCommand) Run(state *state.State) error {
+	for _, pipeline := range c.Pipelines {
+		for _, command := range pipeline.Commands {
+			args := command.Words
+			//fmt.Printf("Args: %#v\n", args)
+			foundBuiltin := false
+			for _, b := range builtin.Builtins {
+				if b.Name == args[0] {
+					foundBuiltin = true
+					ret := b.Entrypoint(state, args)
+					if false {
+						fmt.Printf("returned %d\n", ret)
+					}
+					break
+				}
+			}
+			if !foundBuiltin {
+				return fmt.Errorf("%s: command not found\n", args[0])
+			}
+		}
+	}
+	return nil
 }
 
 type Pipeline struct {

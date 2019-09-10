@@ -2,14 +2,13 @@ package core
 
 import (
 	"fmt"
-	"github.com/agaffney/crapsh/cmd/builtin"
 	"github.com/agaffney/crapsh/core/config"
 	"github.com/agaffney/crapsh/core/executor"
 	core_input "github.com/agaffney/crapsh/core/input"
 	"github.com/agaffney/crapsh/core/state"
 	"github.com/agaffney/crapsh/parser"
 	parser_input "github.com/agaffney/crapsh/parser/input"
-	"github.com/agaffney/crapsh/util"
+	//"github.com/agaffney/crapsh/util"
 	"os"
 )
 
@@ -54,42 +53,21 @@ func (core *Core) Run() {
 
 func (core *Core) processCommands() {
 	for {
-		cmd, err := core.state.Parser.GetCommand()
+		cmdAst, err := core.state.Parser.GetCommand()
 		if err != nil {
 			fmt.Printf("%s: %s\n", core.config.Binary, err.Error())
 			os.Exit(1)
 		}
-		if cmd == nil {
+		if cmdAst == nil {
 			//fmt.Println("no more commands")
 			break
 		}
-		util.DumpJson(cmd, "Command (AST):\n")
-		completeCommand := executor.NewCompleteCommand(cmd)
-		util.DumpJson(completeCommand, "Complete command (executor):\n")
-		for _, pipeline := range cmd.GetChildren() {
-			for _, command := range pipeline.GetChildren() {
-				args := []string{}
-				for _, node := range command.GetChildren() {
-					if node.GetName() == `Word` {
-						args = append(args, node.GetToken().Value)
-					}
-				}
-				//fmt.Printf("Args: %#v\n", args)
-				foundBuiltin := false
-				for _, b := range builtin.Builtins {
-					if b.Name == args[0] {
-						foundBuiltin = true
-						ret := b.Entrypoint(core.state, args)
-						if false {
-							fmt.Printf("returned %d\n", ret)
-						}
-						break
-					}
-				}
-				if !foundBuiltin {
-					fmt.Printf("%s: %s: command not found\n", core.config.Binary, args[0])
-				}
-			}
+		//util.DumpJson(cmdAst, "Command (AST):\n")
+		completeCommand := executor.NewCompleteCommand(cmdAst)
+		//util.DumpJson(completeCommand, "Complete command (executor):\n")
+		err = completeCommand.Run(core.state)
+		if err != nil {
+			fmt.Printf("%s: %s\n", core.config.Binary, err)
 		}
 	}
 }
