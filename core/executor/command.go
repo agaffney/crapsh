@@ -5,6 +5,8 @@ import (
 	"github.com/agaffney/crapsh/cmd/builtin"
 	"github.com/agaffney/crapsh/core/state"
 	"github.com/agaffney/crapsh/parser/ast"
+	"github.com/agaffney/crapsh/util"
+	"os"
 )
 
 type CompleteCommand struct {
@@ -40,6 +42,8 @@ func (c *CompleteCommand) Run(state *state.State) error {
 				}
 			}
 			if !foundBuiltin {
+				paths := util.FindExecutables(args[0], util.SplitPathVar(os.Getenv("PATH")), false)
+				fmt.Printf("Paths: %#v\n", paths)
 				return fmt.Errorf("%s: command not found\n", args[0])
 			}
 		}

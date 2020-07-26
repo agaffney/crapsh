@@ -2,6 +2,7 @@ package input
 
 import (
 	// TODO: maybe replace with https://github.com/fiorix/go-readline
+	// or https://github.com/peterh/liner
 	"github.com/chzyer/readline"
 	"io"
 	"os"
